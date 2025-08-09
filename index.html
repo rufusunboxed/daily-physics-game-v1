@@ -48,7 +48,7 @@
     border:1px solid var(--orange); border-radius:5px; background:#fff;
     margin:0 4px 6px 4px; padding:0 8px; cursor:grab; white-space:nowrap; overflow:hidden; text-overflow:ellipsis
   }
-  .blank.used{border-color:#000} .blank.correct{border-color:var(--green)} .blank.incorrect{border-color:var(--red)}
+  .blank.used{border-color:#000} .blank.correct{border-color:#009901} .blank.incorrect{border-color:#FF0000}
 
   /* Shelf with fixed slots */
   .bank{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start;margin-top:20px}
@@ -59,7 +59,7 @@
     font-size:12px;white-space:nowrap
   }
   .chip:hover{background:#f7f7f7}
-  .chipWrong{border-color:var(--red)}
+  .chipWrong{border-color:#FF0000}
 
   .controls{display:flex;gap:20px;justify-content:flex-start;margin-top:30px;flex-wrap:wrap}
   .btn{
@@ -68,9 +68,9 @@
   }
   .btn:not(.btnGreat):hover{background:#f7f7f7}
   .btn:not(.btnGreat):active{transform:scale(.98)}
-  .btnCheck{background:var(--orange);border-color:var(--orange)}
+  .btnCheck{background:#FF9700;border-color:#FF9700}
   .btnCheck:hover{filter:brightness(.95)}
-  .btnGreat{width:131px;height:32px;background:var(--green);border-color:var(--green);color:#fff;font-weight:400;font-size:16px;pointer-events:none}
+  .btnGreat{width:131px;height:32px;background:#009901;border-color:#009901;color:#fff;font-weight:400;font-size:16px;pointer-events:none}
   .btnLink{
     width:313px;height:32px;background:#fff;border:1px solid #000;border-radius:5px;color:#000;font-size:16px;font-weight:400;
     text-decoration:none;display:inline-flex;align-items:center;justify-content:center;opacity:0;transform:translateX(12px)
@@ -87,7 +87,7 @@
   .slideInRight{animation:slideInRight .35s ease-out forwards}
 
   /* Confetti */
-  .confetti{position:fixed;left:50%;top:20%;width:6px;height:10px;background:var(--green);border-radius:1px;opacity:.9;animation:fall .9s ease-out forwards}
+  .confetti{position:fixed;left:50%;top:20%;width:6px;height:10px;background:#009901;border-radius:1px;opacity:.9;animation:fall .9s ease-out forwards}
   @keyframes fall{from{transform:translate(-50%,0) rotate(0)}to{transform:translate(calc(-50% + var(--dx)),120px) rotate(260deg);opacity:0}}
 
   /* ====== Responsive ====== */
@@ -313,9 +313,16 @@ function resetGame(){
   $("#empty").classList.add("hidden");
 
   // Buttons/links
-  $("#checkBtn").classList.remove("hidden");
-  $("#greatBtn").classList.add("hidden");
-  $("#greatBtn").classList.remove("pulse");
+  const check=$("#checkBtn");
+  check.classList.remove("hidden");
+  check.classList.remove("slideOutRight","pulse");   // <-- critical fix
+  check.style.opacity = "";                           // safety reset
+  check.style.transform = "";                         // safety reset
+
+  const great=$("#greatBtn");
+  great.classList.add("hidden");
+  great.classList.remove("pulse");
+
   const a=$("#learnBtn");
   a.classList.add("hidden");
   a.classList.remove("slideInRight");
@@ -354,11 +361,13 @@ $("#checkBtn").onclick=()=>{
     if(!ok) all=false;
   });
   if(all){
-    $("#checkBtn").classList.add("pulse"); celebrate();
+    const btn=$("#checkBtn");
+    btn.classList.add("pulse");
+    celebrate();
     setTimeout(()=>{
-      $("#checkBtn").classList.add("slideOutRight");
+      btn.classList.add("slideOutRight");
       setTimeout(()=>{
-        $("#checkBtn").classList.add("hidden");
+        btn.classList.add("hidden");
         $("#greatBtn").classList.remove("hidden"); $("#greatBtn").classList.add("pulse");
         if(S.link){
           const a=$("#learnBtn"); a.href=S.link; a.classList.remove("hidden");
