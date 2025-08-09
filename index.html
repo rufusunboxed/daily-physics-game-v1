@@ -12,7 +12,7 @@
     --light:#F0F0F0;
     --orange:#FF9700;
     --ink:#111;
-    --chip-min:84px; /* synced with JS config */
+    --chip-min:84px;
   }
   html,body{margin:0;background:#fff;color:var(--ink)}
   body{font-family:"Century Gothic","Apple Gothic","Segoe UI",Arial,sans-serif;font-size:20px;line-height:1.5}
@@ -32,33 +32,35 @@
   #game{padding:30px;display:none}
   .dateLeft{font-size:12px}
   .sentence{font-size:18px;text-align:left;margin-top:20px;line-height:32px}
+
+  /* Fill-in blanks */
   .blank{
     display:inline-flex;vertical-align:middle;align-items:center;justify-content:center;
     min-width:118px;height:32px;line-height:32px;box-sizing:border-box;border:1px solid var(--orange);border-radius:5px;background:#fff;
     margin:0 4px 6px 4px;padding:0 8px;cursor:grab;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
   }
-  .blank.used{border-color:#000} .blank.correct{border-color:#009901} .blank.incorrect{border-color:#FF0000}
+  .blank.used{border-color:#000} .blank.correct{border-color:var(--green)} .blank.incorrect{border-color:var(--red)}
 
-  /* MCQ answer slot (same visual language, can expand wider) */
+  /* MCQ answer slot */
   .answerSlot{
-    display:inline-flex;align-items:center;justify-content:center;
-    min-width:200px;max-width:100%;height:36px;line-height:36px;margin:16px 0 0 0;
-    background:#fff;border:1px solid var(--orange);border-radius:5px;padding:0 12px;cursor:grab;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+    display:block;text-align:left;font-size:14px;line-height:1.4;
+    min-height:36px;min-width:200px;max-width:100%;margin:16px 0 0 0;
+    background:#fff;border:1px solid var(--orange);border-radius:5px;
+    padding:10px 12px;cursor:grab;white-space:normal;overflow-wrap:anywhere;box-sizing:border-box
   }
   .answerSlot.used{border-color:#000}
   .answerSlot.correct{border-color:var(--green)}
   .answerSlot.incorrect{border-color:var(--red)}
 
-  /* Shelf with fixed slots */
+  /* Shelf with fixed slots (desktop) */
   .bank{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start;margin-top:20px}
-  .bank.mcq{} /* hook for mode-specific tweaks if needed later */
   .slot{display:inline-block;vertical-align:top}
   .chip{
     min-width:var(--chip-min);height:26px;line-height:26px;padding:0 10px;box-sizing:border-box;display:inline-block;text-align:center;
     border:1px dashed #000;border-radius:5px;background:#fff;cursor:grab;font-size:12px;white-space:nowrap
   }
   .chip:hover{background:#f7f7f7}
-  .chipWrong{border-color:#FF0000}
+  .chipWrong{border-color:var(--red)}
 
   .controls{display:flex;gap:20px;justify-content:flex-start;margin-top:30px;flex-wrap:wrap}
   .btn{width:87px;height:32px;border-radius:5px;border:1px solid #000;background:#fff;color:#000;font-weight:700;font-size:18px;cursor:pointer;transition:filter .15s,background .15s,transform .05s}
@@ -90,7 +92,7 @@
   .confetti{position:fixed;left:50%;top:20%;width:6px;height:10px;background:#009901;border-radius:1px;opacity:.9;animation:fall .9s ease-out forwards}
   @keyframes fall{from{transform:translate(-50%,0) rotate(0)}to{transform:translate(calc(-50% + var(--dx)),120px) rotate(260deg);opacity:0}}
 
-  /* Responsive tweaks */
+  /* Responsive */
   @media (max-width:820px){.wrap{padding:12px}#game{padding:22px}.previewBox{width:calc(100% - 48px)}.sentence{font-size:17px}.blank{min-width:96px}}
   @media (max-width:560px){
     body{font-size:18px}
@@ -99,13 +101,23 @@
     .previewBox{font-size:16px}
     .sentence{font-size:16px;line-height:30px}
     .blank{height:30px;line-height:30px;padding:0 10px;min-width:88px}
-    .answerSlot{height:34px;line-height:34px;min-width:180px}
+    .answerSlot{font-size:14px}
     .bank{gap:8px}
     .chip{min-width:72px;font-size:11px;line-height:24px;height:24px;padding:0 8px}
     .controls{gap:12px}
     .btn,.btnCheck,.btnGreat,.btnLink{width:100%}
   }
-  @media (max-width:360px){.sentence{font-size:15px}.blank{min-width:80px}}
+
+  /* MCQ mobile stacking & wrapping */
+  @media (max-width:700px){
+    .bank.mcq{flex-direction:column;align-items:center}       /* center under question */
+    .bank.mcq .slot{width:100%}                                /* take full width of card interior */
+    .bank.mcq .chip{
+      display:block; width:100%; max-width:100%;
+      white-space:normal; overflow-wrap:anywhere;              /* allow multi-line text */
+      text-align:left; padding:10px 12px; line-height:1.4; height:auto;
+    }
+  }
 </style>
 </head>
 <body>
@@ -121,7 +133,6 @@
       <section id="game">
         <div class="dateLeft" id="dateLeft">—</div>
         <div class="sentence" id="sentence"></div>
-        <!-- MCQ answer slot mounts here when needed -->
         <div id="mcqSlotHost"></div>
         <div class="bank" id="bank"></div>
         <div class="controls" id="controls">
@@ -130,7 +141,6 @@
           <button class="btn btnGreat hidden" id="greatBtn">Great Job!</button>
           <a class="btnLink hidden" id="learnBtn" target="_blank" rel="noopener">
             Learn more about this topic here
-            <!-- Heroicons outline external-link -->
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                  width="18" height="18" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round"
@@ -146,7 +156,7 @@
 
 <script>
 /* ===== Config ===== */
-const CONFIG={chipMinWidth:84,mobileDisableFixedSlotsAt:0}; // keep fixed shelf slots on all widths
+const CONFIG={chipMinWidth:84,mobileDisableFixedSlotsAt:0}; // keep fixed shelf slots by default
 const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vSJlHGcShI4Ek9XrNBx_-xD7CT7uS2K2lhmzr1WU6z48u0xNcncL0RGfYFSzzPkTUZ-yurB7L0x7Szk/pub?gid=0&single=true&output=csv";
 const F={date:"date",type:"type",q:"question",correct:"correct_words",distr:"distractors",link:"link"};
 const TYPES={FILL:"fill_blank", MCQ:"multiple_choice"};
@@ -167,7 +177,8 @@ function human(tz="Europe/London",d=new Date()){
   const day=+parts.find(p=>p.type==='day').value, mon=parts.find(p=>p.type==='month').value, y=parts.find(p=>p.type==='year').value;
   return `${ordinal(day)} ${mon} ${y}`;
 }
-function splitList(s){return (s||"").split(",").map(x=>x.trim()).filter(Boolean)}
+/* Pipe-delimited lists so commas are safe inside text */
+function splitListByPipe(s){return (s||"").split("|").map(x=>x.trim()).filter(Boolean)}
 function $(q){return document.querySelector(q)}
 function measureChipWidth(text){
   const tmp=document.createElement("span");
@@ -181,7 +192,7 @@ function renderPreview(){
   else $("#previewBox").textContent=S.q;
 }
 
-/* ===== Blanks (fill-in) ===== */
+/* ===== Fill-in blanks ===== */
 function enableBlank(b){
   b.addEventListener("dragover",e=>e.preventDefault());
   b.addEventListener("drop",e=>{
@@ -237,11 +248,12 @@ function placeChipInBlank(item, idx, fromDrag){
   setSlotWidths();
 }
 
-/* ===== MCQ Renderer ===== */
+/* ===== MCQ ===== */
 function buildAnswerSlot(){
   const host=$("#mcqSlotHost"); host.innerHTML="";
   const slot=document.createElement("div");
-  slot.className="answerSlot"; slot.id="answerSlot"; slot.textContent=""; slot.draggable=true;
+  slot.className="answerSlot"; slot.id="answerSlot"; slot.textContent="";
+  slot.draggable=true;
   slot.addEventListener("dragstart",e=>{
     if(!S.mcq.selection) { e.preventDefault(); return; }
     _drag={from:"mcq",id:S.mcq.selection.id,word:S.mcq.selection.word};
@@ -249,7 +261,6 @@ function buildAnswerSlot(){
   });
   slot.addEventListener("click",()=>{
     if(!S.mcq.selection) return;
-    // Return to shelf
     returnChipToBank(S.mcq.selection.id);
     S.mcq.selection=null;
     setAnswerSlot("");
@@ -260,9 +271,7 @@ function buildAnswerSlot(){
     const id=e.dataTransfer.getData("text/id");
     const word=e.dataTransfer.getData("text/label");
     if(!id) return;
-    // If something already selected, return it first
     if(S.mcq.selection) returnChipToBank(S.mcq.selection.id);
-    // Remove chip from bank if coming from bank
     if(_drag && (_drag.from==="bank" || _drag.from==="blank" || _drag.from==="mcq")){
       const node=S.chipsMap.get(id);
       if(node && node.parentElement) node.parentElement.removeChild(node);
@@ -272,15 +281,12 @@ function buildAnswerSlot(){
   });
   host.appendChild(slot);
   S.mcq.slot=slot;
-  setAnswerSlot(""); // ensure base style
+  setAnswerSlot("");
 }
 function setAnswerSlot(text, stateClass=""){
   const slot=S.mcq.slot; if(!slot) return;
   slot.textContent=text||"";
   slot.className="answerSlot"+(stateClass?(" "+stateClass):"");
-  // dynamic width based on content (with min, capped to container)
-  const w = text ? Math.max(200, measureChipWidth(text)+24) : 200;
-  slot.style.width = w + "px";
 }
 
 /* ===== Shelf (shared) ===== */
@@ -298,10 +304,7 @@ function makeChip(word){
       if(nextIdx===-1) return;
       placeChipInBlank({id,word}, nextIdx, false);
     }else{
-      // MCQ: put into single slot
-      if(S.mcq.selection){ // replace current
-        returnChipToBank(S.mcq.selection.id);
-      }
+      if(S.mcq.selection){ returnChipToBank(S.mcq.selection.id); }
       const node=S.chipsMap.get(id);
       if(node && node.parentElement) node.parentElement.removeChild(node);
       S.mcq.selection={id,word};
@@ -325,11 +328,17 @@ function renderBank(){
   setSlotWidths();
 }
 
+/* Fixed “parking bays” on desktop; on small screens for MCQ we turn them off to avoid overflow */
 function setSlotWidths(){
   const bank=$("#bank"); if(!bank) return;
-  const disable = window.innerWidth <= CONFIG.mobileDisableFixedSlotsAt; // set to 0 (never disable)
+  const isSmall = window.innerWidth <= 700;
+  const disable = (S.mode===TYPES.MCQ && isSmall) || (window.innerWidth <= CONFIG.mobileDisableFixedSlotsAt);
   const slots=[...bank.querySelectorAll(".slot")];
-  if(disable){ slots.forEach(slot=>{ slot.style.width = ""; }); return; }
+
+  if(disable){
+    slots.forEach(slot=>{ slot.style.width = ""; });
+    return;
+  }
   slots.forEach((slot,i)=>{
     const txt=S.slotText[i] ?? "";
     const hasChip=slot.firstElementChild && slot.firstElementChild.classList.contains("chip");
@@ -348,7 +357,7 @@ function addChipToBankById(id){
 }
 function returnChipToBank(id){ addChipToBankById(id); }
 
-/* Drop back onto shelf area (works for both modes) */
+/* Drop back onto shelf */
 $("#bank").addEventListener("dragover",e=>e.preventDefault());
 $("#bank").addEventListener("drop",e=>{
   e.preventDefault();
@@ -365,7 +374,7 @@ $("#bank").addEventListener("drop",e=>{
   }
 });
 
-/* ===== Reset & Success ===== */
+/* Reset */
 function resetGame(){
   $("#preplay").style.display="block";
   $("#game").style.display="none";
@@ -382,7 +391,6 @@ function resetGame(){
   a.classList.add("hidden"); a.classList.remove("slideInRight");
   a.style.opacity=0; a.style.transform="translateX(12px)";
 
-  // Clear state visuals
   if(S.mode===TYPES.FILL){
     S.placements=Array(S.blanks).fill(null);
     document.querySelectorAll(".blank").forEach(b=>{ b.textContent=""; b.className="blank"; });
@@ -391,11 +399,11 @@ function resetGame(){
     setAnswerSlot("");
   }
   $("#bank").querySelectorAll(".chip").forEach(ch=>ch.classList.remove("chipWrong"));
-
   renderPreview();
 }
 $("#resetBtn").onclick=resetGame;
 
+/* Success & Check */
 function celebrate(){
   for(let i=0;i<18;i++){
     const c=document.createElement("div");
@@ -405,35 +413,7 @@ function celebrate(){
     setTimeout(()=>c.remove(),950);
   }
 }
-
-/* ===== Check handling for both modes ===== */
-$("#checkBtn").onclick=()=>{
-  if(S.mode===TYPES.FILL){
-    let all=true;
-    document.querySelectorAll(".blank").forEach((b,i)=>{
-      const placed=S.placements[i], ok=placed && placed.word===S.correct[i];
-      b.classList.remove("used","correct","incorrect");
-      if(placed){ b.classList.add(ok?"correct":"incorrect"); b.textContent=placed.word; }
-      else all=false;
-      if(!ok) all=false;
-    });
-    if(all) onSuccess();
-  }else{
-    // MCQ
-    const slot=S.mcq.slot;
-    const sel=S.mcq.selection;
-    let correct=false;
-    if(sel){
-      correct = sel.word === (S.correct[0]||"");
-      slot.classList.remove("used","correct","incorrect");
-      slot.classList.add(correct?"correct":"incorrect");
-    }
-    if(correct) onSuccess();
-  }
-};
-
 function onSuccess(){
-  // green background pulse
   const card=document.querySelector(".card");
   card.classList.remove("bgPulse"); void card.offsetWidth; card.classList.add("bgPulse");
 
@@ -454,9 +434,33 @@ function onSuccess(){
   },620);
 }
 
-$("#greatBtn").onclick=()=>{}; // no-op
+$("#checkBtn").onclick=()=>{
+  if(S.mode===TYPES.FILL){
+    let all=true;
+    document.querySelectorAll(".blank").forEach((b,i)=>{
+      const placed=S.placements[i], ok=placed && placed.word===S.correct[i];
+      b.classList.remove("used","correct","incorrect");
+      if(placed){ b.classList.add(ok?"correct":"incorrect"); b.textContent=placed.word; }
+      else all=false;
+      if(!ok) all=false;
+    });
+    if(all) onSuccess();
+  }else{
+    const slot=S.mcq.slot;
+    const sel=S.mcq.selection;
+    let correct=false;
+    if(sel){
+      correct = sel.word === (S.correct[0]||"");
+      slot.classList.remove("used","correct","incorrect");
+      slot.classList.add(correct?"correct":"incorrect");
+    }
+    if(correct) onSuccess();
+  }
+};
 
-/* ===== Play & Init ===== */
+$("#greatBtn").onclick=()=>{};
+
+/* Play & Init */
 $("#playBtn").onclick=()=>{
   $("#preplay").style.display="none"; $("#game").style.display="block";
   $("#dateLeft").textContent=$("#dateTop").textContent;
@@ -466,7 +470,6 @@ $("#playBtn").onclick=()=>{
     S.placements=Array(S.blanks).fill(null);
     renderBank(); setSlotWidths();
   }else{
-    // MCQ
     $("#sentence").textContent=S.q;
     buildAnswerSlot();
     renderBank(); setSlotWidths();
@@ -486,15 +489,17 @@ function choose(rows,ymd){const url=new URL(location.href);const o=url.searchPar
   if(!row){ $("#preplay").style.display="none"; $("#empty").classList.remove("hidden"); return }
 
   S.mode = ((row[F.type]||"").trim()===TYPES.MCQ) ? TYPES.MCQ : TYPES.FILL;
-  S.q=(row[F.q]||"").trim(); S.correct=splitList(row[F.correct]); S.distr=splitList(row[F.distr]); S.link=(row[F.link]||"").trim();
+  S.q=(row[F.q]||"").trim();
+  S.correct=splitListByPipe(row[F.correct]);
+  S.distr=splitListByPipe(row[F.distr]);
+  S.link=(row[F.link]||"").trim();
 
   if(S.mode===TYPES.FILL){
     S.blanks=(S.q.match(/\[blank\]/g)||[]).length;
     if(S.blanks!==S.correct.length){ $("#preplay").style.display="none"; $("#empty").classList.remove("hidden"); $("#empty").textContent="Config error: [blank] count must equal correct_words."; return }
     S.tokens=[...S.correct, ...S.distr.slice(0, Math.max(0, TOTAL_OPTIONS_FILL - S.correct.length))];
   }else{
-    // MCQ uses all options (1 correct + all distractors provided)
-    S.blanks=1; // conceptual; used by resets
+    S.blanks=1;
     S.tokens=[...S.correct, ...S.distr];
   }
 
@@ -503,7 +508,6 @@ function choose(rows,ymd){const url=new URL(location.href);const o=url.searchPar
   S.mcq.selection=null;
   renderPreview();
 
-  // Recalc slot widths on resize
   let resizeTO=null;
   window.addEventListener('resize', ()=>{ clearTimeout(resizeTO); resizeTO=setTimeout(setSlotWidths, 120); });
 })();
