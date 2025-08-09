@@ -30,12 +30,15 @@
     width:118px;height:32px;line-height:32px;box-sizing:border-box;
     border:1px solid var(--orange);border-radius:5px;background:#fff;
     margin:0 4px 6px 4px;padding:0 8px;cursor:grab;white-space:nowrap;
-    align-items:center;justify-content:center; /* center content */
+    align-items:center;justify-content:center;
   }
   .blank.used{border-color:#000}
   .blank.correct{border-color:var(--green)}
   .blank.incorrect{border-color:var(--red)}
+
+  /* Shelf with fixed slots */
   .bank{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start;margin-top:20px}
+  .slot{display:inline-block;vertical-align:top}
   .chip{
     min-width:84px;height:26px;line-height:26px;padding:0 10px;box-sizing:border-box;
     display:inline-block;text-align:center;border:1px dashed #000;border-radius:5px;
@@ -43,14 +46,16 @@
   }
   .chip:hover{background:#f7f7f7}
   .chipWrong{border-color:var(--red)}
+
   .controls{display:flex;gap:20px;justify-content:flex-start;margin-top:30px}
   .btn{width:87px;height:32px;border-radius:5px;border:1px solid #000;background:#fff;color:#000;font-weight:700;font-size:18px;cursor:pointer;transition:filter .15s,background .15s,transform .05s}
-  .btn:hover{background:#f7f7f7}
-  .btn:active{transform:scale(.98)}
+  .btn:not(.btnGreat):hover{background:#f7f7f7}
+  .btn:not(.btnGreat):active{transform:scale(.98)}
   .btnCheck{background:var(--orange);border-color:var(--orange)}
   .btnCheck:hover{filter:brightness(.95)}
   .btnGreat{width:131px;height:32px;background:var(--green);border-color:var(--green);color:#fff;font-weight:400;font-size:16px}
-  /* no hover on Great Job */
+  .btnGreat:hover{filter:none;background:var(--green)}
+  .btnGreat:active{transform:none}
   .btnLink{width:313px;height:32px;background:#fff;border:1px solid #000;border-radius:5px;color:#000;font-size:16px;font-weight:400;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;opacity:0;transform:translateX(12px)}
   .btnLink:hover{background:#f7f7f7}
   .hidden{display:none}
@@ -101,7 +106,7 @@ const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vSJlHGcShI4Ek9XrN
 const F={date:"date",type:"type",q:"question",correct:"correct_words",distr:"distractors",link:"link"};
 const EXPECTED="fill_blank", TOTAL_OPTIONS=5;
 
-const S={q:"",correct:[],distr:[],blanks:0,placements:[],tokens:[],link:"",chipsMap:new Map()};
+const S={q:"",correct:[],distr:[],blanks:0,placements:[],tokens:[],link:"",chipsMap:new Map(),slotIndexById:new Map()};
 let chipSeq=0, _drag=null;
 
 function toYMD(tz="Europe/London",d=new Date()){
@@ -156,6 +161,7 @@ function renderSentence(){
   });
 }
 
+/* Shelf with fixed slots */
 function makeChip(word){
   const id=`c${++chipSeq}`;
   const chip=document.createElement("span");
@@ -172,9 +178,28 @@ function makeChip(word){
   S.chipsMap.set(id,chip);
   return {id,node:chip,word};
 }
-function addChipToBankById(id){const chip=S.chipsMap.get(id); if(chip) $("#bank").append(chip)}
-function returnChipToBank(id){addChipToBankById(id)}
-function renderBank(){ $("#bank").innerHTML=""; S.tokens.forEach(tok=>$("#bank").append(makeChip(tok).node)) }
+
+function renderBank(){
+  const bank=$("#bank"); bank.innerHTML="";
+  S.slotIndexById.clear();
+  S.tokens.forEach((tok, i)=>{
+    const slot=document.createElement("div"); slot.className="slot"; slot.dataset.index=i;
+    const {id,node}=makeChip(tok);
+    slot.appendChild(node); bank.appendChild(slot);
+    // measure and lock slot width so space remains when chip removed
+    requestAnimationFrame(()=>{ slot.style.width = node.offsetWidth + "px"; });
+    S.slotIndexById.set(id, i);
+  });
+}
+
+function addChipToBankById(id){
+  const slotIdx=S.slotIndexById.get(id);
+  const chip=S.chipsMap.get(id);
+  if(chip==null || slotIdx==null) return;
+  const slot=$("#bank").querySelector(`.slot[data-index="${slotIdx}"]`);
+  if(slot) slot.appendChild(chip);
+}
+function returnChipToBank(id){ addChipToBankById(id); }
 
 function placeChipInBlank(item, idx, fromDrag){
   if(S.placements[idx]) returnChipToBank(S.placements[idx].id);
@@ -195,6 +220,7 @@ function placeChipInBlank(item, idx, fromDrag){
   target.textContent=item.word; target.className="blank used"; _drag=null;
 }
 
+/* Return from blank to correct slot by dropping on bank area */
 $("#bank").addEventListener("dragover",e=>e.preventDefault());
 $("#bank").addEventListener("drop",e=>{
   e.preventDefault();
@@ -204,6 +230,7 @@ $("#bank").addEventListener("drop",e=>{
   }
 });
 
+/* Buttons */
 function resetToFrame1(){
   $("#game").style.display="none"; $("#preplay").style.display="block";
   S.placements=Array(S.blanks).fill(null); renderPreview();
