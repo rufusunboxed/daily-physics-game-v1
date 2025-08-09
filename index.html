@@ -9,54 +9,66 @@
   :root{--green:#009901;--red:#FF0000;--light:#F0F0F0;--orange:#FF9700;--ink:#111}
   html,body{margin:0;background:#fff;color:var(--ink)}
   body{font-family:"Century Gothic","Apple Gothic","Segoe UI",Arial,sans-serif;font-size:20px;line-height:1.5}
-  .wrap{max-width:940px;margin:0 auto;padding:24px 0;display:flex;justify-content:center}
-  .card{width:760px;background:var(--light);border:2px solid var(--orange);border-radius:20px;box-sizing:border-box}
+
+  /* Outer container is fluid; card clamps to 760 on desktop */
+  .wrap{max-width:940px;margin:0 auto;padding:16px;display:flex;justify-content:center}
+  .card{
+    width:100%; max-width:760px;
+    background:var(--light); border:2px solid var(--orange); border-radius:20px; box-sizing:border-box
+  }
 
   /* Frame 1 */
   #preplay{height:260px;text-align:center;position:relative}
   .dateTop{font-size:12px;margin-top:30px;margin-bottom:5px}
   .title24{font-weight:700;font-size:24px;margin:0}
-  .previewBox{width:calc(100% - 80px);margin:30px auto 0;background:#fff;border-radius:20px;padding:20px;box-sizing:border-box;font-size:18px}
-  .btnPlay{width:87px;height:36px;margin:30px auto 0;background:var(--orange);color:#000;border-radius:5px;border:0;cursor:pointer;font-weight:700;font-size:18px;transition:filter .15s,transform .05s}
-  .btnPlay:hover{filter:brightness(.95)}
-  .btnPlay:active{transform:scale(.98)}
+  .previewBox{
+    width:calc(100% - 80px); margin:30px auto 0; background:#fff; border-radius:20px; padding:20px;
+    box-sizing:border-box; font-size:18px
+  }
+  .btnPlay{
+    width:87px;height:36px;margin:30px auto 0;background:var(--orange);color:#000;border-radius:5px;border:0;cursor:pointer;
+    font-weight:700;font-size:18px;transition:filter .15s,transform .05s
+  }
+  .btnPlay:hover{filter:brightness(.95)} .btnPlay:active{transform:scale(.98)}
 
   /* In-game */
   #game{padding:30px;display:none}
   .dateLeft{font-size:12px}
   .sentence{font-size:18px;text-align:left;margin-top:20px;line-height:32px}
   .blank{
-    display:inline-flex;vertical-align:middle;
-    width:118px;height:32px;line-height:32px;box-sizing:border-box;
-    border:1px solid var(--orange);border-radius:5px;background:#fff;
-    margin:0 4px 6px 4px;padding:0 8px;cursor:grab;white-space:nowrap;
-    align-items:center;justify-content:center;
+    display:inline-flex;vertical-align:middle; align-items:center;justify-content:center;
+    width:118px; height:32px; line-height:32px; box-sizing:border-box;
+    border:1px solid var(--orange); border-radius:5px; background:#fff;
+    margin:0 4px 6px 4px; padding:0 8px; cursor:grab; white-space:nowrap; overflow:hidden; text-overflow:ellipsis
   }
-  .blank.used{border-color:#000}
-  .blank.correct{border-color:var(--green)}
-  .blank.incorrect{border-color:var(--red)}
+  .blank.used{border-color:#000} .blank.correct{border-color:var(--green)} .blank.incorrect{border-color:var(--red)}
 
   /* Shelf with fixed slots */
   .bank{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start;margin-top:20px}
   .slot{display:inline-block;vertical-align:top}
   .chip{
     min-width:84px;height:26px;line-height:26px;padding:0 10px;box-sizing:border-box;
-    display:inline-block;text-align:center;border:1px dashed #000;border-radius:5px;
-    background:#fff;cursor:grab;font-size:12px;white-space:nowrap
+    display:inline-block;text-align:center;border:1px dashed #000;border-radius:5px;background:#fff;cursor:grab;
+    font-size:12px;white-space:nowrap
   }
   .chip:hover{background:#f7f7f7}
   .chipWrong{border-color:var(--red)}
 
-  .controls{display:flex;gap:20px;justify-content:flex-start;margin-top:30px}
-  .btn{width:87px;height:32px;border-radius:5px;border:1px solid #000;background:#fff;color:#000;font-weight:700;font-size:18px;cursor:pointer;transition:filter .15s,background .15s,transform .05s}
+  .controls{display:flex;gap:20px;justify-content:flex-start;margin-top:30px;flex-wrap:wrap}
+  .btn{
+    width:87px;height:32px;border-radius:5px;border:1px solid #000;background:#fff;color:#000;font-weight:700;font-size:18px;
+    cursor:pointer;transition:filter .15s,background .15s,transform .05s
+  }
   .btn:not(.btnGreat):hover{background:#f7f7f7}
   .btn:not(.btnGreat):active{transform:scale(.98)}
   .btnCheck{background:var(--orange);border-color:var(--orange)}
   .btnCheck:hover{filter:brightness(.95)}
   .btnGreat{width:131px;height:32px;background:var(--green);border-color:var(--green);color:#fff;font-weight:400;font-size:16px}
-  .btnGreat:hover{filter:none;background:var(--green)}
-  .btnGreat:active{transform:none}
-  .btnLink{width:313px;height:32px;background:#fff;border:1px solid #000;border-radius:5px;color:#000;font-size:16px;font-weight:400;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;opacity:0;transform:translateX(12px)}
+  .btnGreat:hover{filter:none;background:var(--green)} .btnGreat:active{transform:none}
+  .btnLink{
+    width:313px;height:32px;background:#fff;border:1px solid #000;border-radius:5px;color:#000;font-size:16px;font-weight:400;
+    text-decoration:none;display:inline-flex;align-items:center;justify-content:center;opacity:0;transform:translateX(12px)
+  }
   .btnLink:hover{background:#f7f7f7}
   .hidden{display:none}
 
@@ -71,6 +83,34 @@
   /* Confetti */
   .confetti{position:fixed;left:50%;top:20%;width:6px;height:10px;background:var(--green);border-radius:1px;opacity:.9;animation:fall .9s ease-out forwards}
   @keyframes fall{from{transform:translate(-50%,0) rotate(0)}to{transform:translate(calc(-50% + var(--dx)),120px) rotate(260deg);opacity:0}}
+
+  /* ====== Responsive ====== */
+  @media (max-width: 820px){
+    .wrap{padding:12px}
+    #game{padding:22px}
+    .previewBox{width:calc(100% - 48px)}
+    .sentence{font-size:17px}
+    .blank{width:auto; min-width:96px}
+  }
+  @media (max-width: 560px){
+    body{font-size:18px}
+    #preplay{height:auto; padding-bottom:20px}
+    .title24{font-size:22px}
+    .previewBox{font-size:16px}
+    .sentence{font-size:16px; line-height:30px}
+    .blank{height:30px; line-height:30px; padding:0 10px; min-width:88px}
+    .bank{gap:8px}
+    .chip{min-width:72px; font-size:11px; line-height:24px; height:24px; padding:0 8px}
+    .controls{gap:12px}
+    .btn{width:100%}
+    .btnCheck{width:100%}
+    .btnGreat{width:100%}
+    .btnLink{width:100%}
+  }
+  @media (max-width: 360px){
+    .sentence{font-size:15px}
+    .blank{min-width:80px}
+  }
 </style>
 </head>
 <body>
@@ -106,7 +146,7 @@ const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vSJlHGcShI4Ek9XrN
 const F={date:"date",type:"type",q:"question",correct:"correct_words",distr:"distractors",link:"link"};
 const EXPECTED="fill_blank", TOTAL_OPTIONS=5;
 
-const S={q:"",correct:[],distr:[],blanks:0,placements:[],tokens:[],link:"",chipsMap:new Map(),slotIndexById:new Map()};
+const S={q:"",correct:[],distr:[],blanks:0,placements:[],tokens:[],link:"",chipsMap:new Map(),slotIndexById:new Map(),slotText:[]};
 let chipSeq=0, _drag=null;
 
 function toYMD(tz="Europe/London",d=new Date()){
@@ -161,6 +201,14 @@ function renderSentence(){
   });
 }
 
+/* Measure chip width under current styles */
+function measureChipWidth(text){
+  const tmp=document.createElement("span");
+  tmp.className="chip"; tmp.style.position="absolute"; tmp.style.visibility="hidden"; tmp.style.left="-9999px";
+  tmp.textContent=text; document.body.appendChild(tmp);
+  const w=tmp.offsetWidth; document.body.removeChild(tmp); return w;
+}
+
 /* Shelf with fixed slots */
 function makeChip(word){
   const id=`c${++chipSeq}`;
@@ -181,14 +229,24 @@ function makeChip(word){
 
 function renderBank(){
   const bank=$("#bank"); bank.innerHTML="";
-  S.slotIndexById.clear();
+  S.slotIndexById.clear(); S.slotText=[...S.tokens];
   S.tokens.forEach((tok, i)=>{
     const slot=document.createElement("div"); slot.className="slot"; slot.dataset.index=i;
     const {id,node}=makeChip(tok);
     slot.appendChild(node); bank.appendChild(slot);
-    // measure and lock slot width so space remains when chip removed
-    requestAnimationFrame(()=>{ slot.style.width = node.offsetWidth + "px"; });
     S.slotIndexById.set(id, i);
+  });
+  setSlotWidths();
+}
+
+function setSlotWidths(){
+  const bank=$("#bank"); if(!bank) return;
+  const slots=[...bank.querySelectorAll(".slot")];
+  slots.forEach((slot,i)=>{
+    const txt=S.slotText[i] ?? "";
+    const hasChip=slot.firstElementChild && slot.firstElementChild.classList.contains("chip");
+    const w = hasChip ? slot.firstElementChild.offsetWidth : measureChipWidth(txt);
+    slot.style.width = Math.max(72, w) + "px";
   });
 }
 
@@ -198,6 +256,7 @@ function addChipToBankById(id){
   if(chip==null || slotIdx==null) return;
   const slot=$("#bank").querySelector(`.slot[data-index="${slotIdx}"]`);
   if(slot) slot.appendChild(chip);
+  setSlotWidths();
 }
 function returnChipToBank(id){ addChipToBankById(id); }
 
@@ -218,6 +277,7 @@ function placeChipInBlank(item, idx, fromDrag){
   S.placements[idx]={id:item.id,word:item.word};
   const target=document.querySelector(`.blank[data-index="${idx}"]`);
   target.textContent=item.word; target.className="blank used"; _drag=null;
+  setSlotWidths();
 }
 
 /* Return from blank to correct slot by dropping on bank area */
@@ -230,7 +290,6 @@ $("#bank").addEventListener("drop",e=>{
   }
 });
 
-/* Buttons */
 function resetToFrame1(){
   $("#game").style.display="none"; $("#preplay").style.display="block";
   S.placements=Array(S.blanks).fill(null); renderPreview();
@@ -291,6 +350,10 @@ function choose(rows,ymd){const url=new URL(location.href);const o=url.searchPar
   S.tokens=[...S.correct, ...S.distr.slice(0, Math.max(0, TOTAL_OPTIONS - S.correct.length))];
   S.tokens=shuffle(S.tokens); S.placements=Array(S.blanks).fill(null);
   renderPreview();
+
+  // recalc slot widths on resize for responsiveness
+  let resizeTO=null;
+  window.addEventListener('resize', ()=>{ clearTimeout(resizeTO); resizeTO=setTimeout(setSlotWidths, 120); });
 })();
 </script>
 </body>
