@@ -26,19 +26,23 @@
   /* In-game */
   #game{padding:30px;display:none}
   .dateLeft{font-size:12px}
-  .sentence{font-size:18px;text-align:left;margin-top:20px}
+  .sentence{font-size:18px;text-align:left;margin-top:20px;line-height:32px} /* match blank height for alignment */
   .blank{
-    display:inline-flex;width:118px;height:32px;box-sizing:border-box;
+    display:inline-block; /* baseline alignment */
+    vertical-align:baseline;
+    width:118px;height:32px;line-height:32px; /* perfect vertical centering with text */
+    box-sizing:border-box;
     border:1px solid var(--orange);border-radius:5px;background:#fff;
-    align-items:center;justify-content:center;margin:0 4px 6px 4px;padding:0 8px;cursor:grab
+    margin:0 4px 6px 4px;padding:0 8px;cursor:grab;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
   }
   .blank.used{border-color:#000}
   .blank.correct{border-color:var(--green)}
   .blank.incorrect{border-color:var(--red)}
   .bank{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start;margin-top:20px}
   .chip{
-    min-width:84px;height:26px;padding:0 10px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
-    border:1px dashed #000;border-radius:5px;background:#fff;cursor:grab;font-size:12px;line-height:12px;white-space:nowrap
+    min-width:84px; height:26px; line-height:26px;
+    padding:0 10px; box-sizing:border-box; display:inline-block; text-align:center;
+    border:1px dashed #000;border-radius:5px;background:#fff;cursor:grab;font-size:12px;white-space:nowrap
   }
   .chip:hover{background:#f7f7f7}
   .chipWrong{border-color:var(--red)}
@@ -139,28 +143,17 @@ function enableBlank(b){
     const word=e.dataTransfer.getData("text/label");
     if(!id) return;
 
-    // return existing placed word (if any) to shelf
-    if(S.placements[idx]) returnChipToBank(S.placements[idx].id);
+    placeChipInBlank({id,word}, idx, /*fromDrag=*/true);
+  });
 
-    // if dragged from another blank, clear that blank
-    if(_drag && _drag.from==="blank"){
-      const from=_drag.idx;
-      if(from!==idx){
-        S.placements[from]=null;
-        const el=document.querySelector(`.blank[data-index="${from}"]`);
-        el.textContent=""; el.className="blank";
-      }
-    }
-    // if from bank, remove chip node from bank (not from map)
-    if(_drag && _drag.from==="bank"){
-      const node=S.chipsMap.get(id);
-      if(node && node.parentElement) node.parentElement.removeChild(node);
-    }
-
-    S.placements[idx]={id,word};
-    b.textContent=word;
-    b.className="blank used";
-    _drag=null;
+  // click a filled blank -> return to shelf
+  b.addEventListener("click",()=>{
+    const idx=+b.dataset.index;
+    const placed=S.placements[idx];
+    if(!placed) return;
+    returnChipToBank(placed.id);
+    S.placements[idx]=null;
+    b.textContent=""; b.className="blank";
   });
 
   // allow drag out of blank
@@ -197,14 +190,24 @@ function makeChip(word){
   chip.textContent=word;
   chip.draggable=true;
   chip.dataset.id=id;
+
   chip.addEventListener("dragstart",e=>{
     _drag={from:"bank",id,word,node:chip};
     e.dataTransfer.setData("text/id", id);
     e.dataTransfer.setData("text/label", word);
   });
+
+  // CLICK-TO-FILL: put into next available blank
+  chip.addEventListener("click",()=>{
+    const nextIdx = S.placements.findIndex(x=>!x);
+    if(nextIdx === -1) return; // none free
+    placeChipInBlank({id,word}, nextIdx, /*fromDrag=*/false);
+  });
+
   S.chipsMap.set(id, chip);
   return {id, node:chip, word};
 }
+
 function addChipToBankById(id){
   const chip=S.chipsMap.get(id);
   if(chip) $("#bank").append(chip);
@@ -212,12 +215,42 @@ function addChipToBankById(id){
 function returnChipToBank(id){
   addChipToBankById(id);
 }
+
 function renderBank(){
   $("#bank").innerHTML="";
   S.tokens.forEach(tok=>{
     const item = makeChip(tok);
     $("#bank").append(item.node);
   });
+}
+
+/* Core placement helper (used by drag-drop and click-to-fill) */
+function placeChipInBlank(item, idx, fromDrag){
+  // if target already filled, return that chip first
+  if(S.placements[idx]) returnChipToBank(S.placements[idx].id);
+
+  // if coming from another blank, clear that source
+  if(_drag && _drag.from==="blank"){
+    const from=_drag.idx;
+    if(from!==idx){
+      S.placements[from]=null;
+      const el=document.querySelector(`.blank[data-index="${from}"]`);
+      el.textContent=""; el.className="blank";
+    }
+  }
+
+  // if coming from bank (drag or click), remove node from bank
+  if((_drag && _drag.from==="bank") || !fromDrag){
+    const node=S.chipsMap.get(item.id);
+    if(node && node.parentElement) node.parentElement.removeChild(node);
+  }
+
+  // set placement
+  S.placements[idx]={id:item.id, word:item.word};
+  const target=document.querySelector(`.blank[data-index="${idx}"]`);
+  target.textContent=item.word;
+  target.className="blank used";
+  _drag=null;
 }
 
 /* Return from blank to bank by dropping on bank */
@@ -238,14 +271,11 @@ $("#bank").addEventListener("drop",e=>{
 function resetToFrame1(){
   $("#game").style.display="none";
   $("#preplay").style.display="block";
-  // reset placements and bank
   S.placements=Array(S.blanks).fill(null);
   renderPreview();
-  // reset buttons
   $("#checkBtn").classList.remove("hidden");
   $("#greatBtn").classList.add("hidden");
   const learn=$("#learnBtn"); learn.classList.add("hidden"); learn.style.opacity=0; learn.style.transform="translateX(12px)";
-  // clear any red style on bank chips
   $("#bank").querySelectorAll(".chip").forEach(ch=>ch.classList.remove("chipWrong"));
 }
 function resetInGame(){
@@ -278,7 +308,6 @@ $("#checkBtn").onclick=()=>{
     if(!ok) all=false;
   });
   if(all){
-    // success UI: pulse then slide out Check; delay + slide in Learn
     $("#checkBtn").classList.add("pulse");
     celebrate();
     setTimeout(()=>{
@@ -289,16 +318,15 @@ $("#checkBtn").onclick=()=>{
         $("#greatBtn").classList.add("pulse");
         if(S.link){
           const a=$("#learnBtn"); a.href=S.link; a.classList.remove("hidden");
-          setTimeout(()=>{ a.classList.add("slideInRight"); a.style.opacity=1; }, 900); // ~1s delay
+          setTimeout(()=>{ a.classList.add("slideInRight"); a.style.opacity=1; }, 900);
         }
-        // mark remaining shelf chips red dotted
         $("#bank").querySelectorAll(".chip").forEach(ch=>ch.classList.add("chipWrong"));
       }, 350);
-    }, 620); // let the pulse run twice
+    }, 620);
   }
 };
 
-$("#greatBtn").onclick=()=>{}; // placeholder (stays visible)
+$("#greatBtn").onclick=()=>{};
 
 $("#playBtn").onclick=()=>{
   $("#preplay").style.display="none";
