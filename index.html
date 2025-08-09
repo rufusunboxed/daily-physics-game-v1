@@ -6,9 +6,7 @@
 <title>Today’s Physics Game</title>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <style>
-  :root{
-    --green:#009901; --red:#FF0000; --light:#F0F0F0; --orange:#FF9700; --ink:#111;
-  }
+  :root{--green:#009901;--red:#FF0000;--light:#F0F0F0;--orange:#FF9700;--ink:#111}
   html,body{margin:0;background:#fff;color:var(--ink)}
   body{font-family:"Century Gothic","Apple Gothic","Segoe UI",Arial,sans-serif;font-size:20px;line-height:1.5}
   .wrap{max-width:940px;margin:0 auto;padding:24px 0;display:flex;justify-content:center}
@@ -20,29 +18,28 @@
   .title24{font-weight:700;font-size:24px;margin:0}
   .previewBox{width:calc(100% - 80px);margin:30px auto 0;background:#fff;border-radius:20px;padding:20px;box-sizing:border-box;font-size:18px}
   .btnPlay{width:87px;height:36px;margin:30px auto 0;background:var(--orange);color:#000;border-radius:5px;border:0;cursor:pointer;font-weight:700;font-size:18px;transition:filter .15s,transform .05s}
-  .btnPlay:hover{filter:brightness(0.95)}
+  .btnPlay:hover{filter:brightness(.95)}
   .btnPlay:active{transform:scale(.98)}
 
   /* In-game */
   #game{padding:30px;display:none}
   .dateLeft{font-size:12px}
-  .sentence{font-size:18px;text-align:left;margin-top:20px;line-height:32px} /* match blank height for alignment */
+  .sentence{font-size:18px;text-align:left;margin-top:20px;line-height:32px}
   .blank{
-    display:inline-block; /* baseline alignment */
-    vertical-align:baseline;
-    width:118px;height:32px;line-height:32px; /* perfect vertical centering with text */
-    box-sizing:border-box;
+    display:inline-flex;vertical-align:middle;
+    width:118px;height:32px;line-height:32px;box-sizing:border-box;
     border:1px solid var(--orange);border-radius:5px;background:#fff;
-    margin:0 4px 6px 4px;padding:0 8px;cursor:grab;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+    margin:0 4px 6px 4px;padding:0 8px;cursor:grab;white-space:nowrap;
+    align-items:center;justify-content:center; /* center content */
   }
   .blank.used{border-color:#000}
   .blank.correct{border-color:var(--green)}
   .blank.incorrect{border-color:var(--red)}
   .bank{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start;margin-top:20px}
   .chip{
-    min-width:84px; height:26px; line-height:26px;
-    padding:0 10px; box-sizing:border-box; display:inline-block; text-align:center;
-    border:1px dashed #000;border-radius:5px;background:#fff;cursor:grab;font-size:12px;white-space:nowrap
+    min-width:84px;height:26px;line-height:26px;padding:0 10px;box-sizing:border-box;
+    display:inline-block;text-align:center;border:1px dashed #000;border-radius:5px;
+    background:#fff;cursor:grab;font-size:12px;white-space:nowrap
   }
   .chip:hover{background:#f7f7f7}
   .chipWrong{border-color:var(--red)}
@@ -51,9 +48,9 @@
   .btn:hover{background:#f7f7f7}
   .btn:active{transform:scale(.98)}
   .btnCheck{background:var(--orange);border-color:var(--orange)}
-  .btnCheck:hover{filter:brightness(0.95)}
+  .btnCheck:hover{filter:brightness(.95)}
   .btnGreat{width:131px;height:32px;background:var(--green);border-color:var(--green);color:#fff;font-weight:400;font-size:16px}
-  .btnGreat:hover{filter:brightness(0.95)}
+  /* no hover on Great Job */
   .btnLink{width:313px;height:32px;background:#fff;border:1px solid #000;border-radius:5px;color:#000;font-size:16px;font-weight:400;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;opacity:0;transform:translateX(12px)}
   .btnLink:hover{background:#f7f7f7}
   .hidden{display:none}
@@ -74,7 +71,6 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <!-- FRAME 1 -->
       <section id="preplay">
         <div class="dateTop" id="dateTop">Loading…</div>
         <h1 class="title24">Today’s Physics Game</h1>
@@ -82,7 +78,6 @@
         <button class="btnPlay" id="playBtn">Play</button>
       </section>
 
-      <!-- FRAMES 2–5 -->
       <section id="game">
         <div class="dateLeft" id="dateLeft">—</div>
         <div class="sentence" id="sentence"></div>
@@ -102,38 +97,28 @@
   </div>
 
 <script>
-/* CONFIG */
 const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vSJlHGcShI4Ek9XrNBx_-xD7CT7uS2K2lhmzr1WU6z48u0xNcncL0RGfYFSzzPkTUZ-yurB7L0x7Szk/pub?gid=0&single=true&output=csv";
 const F={date:"date",type:"type",q:"question",correct:"correct_words",distr:"distractors",link:"link"};
-const EXPECTED="fill_blank";
-const TOTAL_OPTIONS=5;
+const EXPECTED="fill_blank", TOTAL_OPTIONS=5;
 
-/* STATE */
 const S={q:"",correct:[],distr:[],blanks:0,placements:[],tokens:[],link:"",chipsMap:new Map()};
-let chipSeq=0;
-let _drag=null;
+let chipSeq=0, _drag=null;
 
-/* Utils */
 function toYMD(tz="Europe/London",d=new Date()){
   const p=new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d).filter(x=>x.type!=='literal').map(x=>x.value);
   return `${p[0]}-${p[1]}-${p[2]}`;
 }
-function ordinal(n){const s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+function ordinal(n){const s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0])}
 function human(tz="Europe/London",d=new Date()){
   const parts=new Intl.DateTimeFormat('en-GB',{timeZone:tz,day:'numeric',month:'long',year:'numeric'}).formatToParts(d);
-  const day=+parts.find(p=>p.type==='day').value;
-  const mon=parts.find(p=>p.type==='month').value;
-  const y=parts.find(p=>p.type==='year').value;
+  const day=+parts.find(p=>p.type==='day').value, mon=parts.find(p=>p.type==='month').value, y=parts.find(p=>p.type==='year').value;
   return `${ordinal(day)} ${mon} ${y}`;
 }
 function splitList(s){return (s||"").split(",").map(x=>x.trim()).filter(Boolean)}
 function $(q){return document.querySelector(q)}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function renderPreview(){ $("#previewBox").textContent=S.q.replace(/\[blank\]/g,"______") }
 
-/* Preview */
-function renderPreview(){ $("#previewBox").textContent=S.q.replace(/\[blank\]/g,"______"); }
-
-/* Sentence + blanks */
 function enableBlank(b){
   b.addEventListener("dragover",e=>e.preventDefault());
   b.addEventListener("drop",e=>{
@@ -142,29 +127,19 @@ function enableBlank(b){
     const id=e.dataTransfer.getData("text/id");
     const word=e.dataTransfer.getData("text/label");
     if(!id) return;
-
-    placeChipInBlank({id,word}, idx, /*fromDrag=*/true);
+    placeChipInBlank({id,word}, idx, true);
   });
-
-  // click a filled blank -> return to shelf
   b.addEventListener("click",()=>{
-    const idx=+b.dataset.index;
-    const placed=S.placements[idx];
+    const idx=+b.dataset.index, placed=S.placements[idx];
     if(!placed) return;
     returnChipToBank(placed.id);
-    S.placements[idx]=null;
-    b.textContent=""; b.className="blank";
+    S.placements[idx]=null; b.textContent=""; b.className="blank";
   });
-
-  // allow drag out of blank
   b.addEventListener("dragstart",e=>{
     if(!b.textContent.trim()) return;
-    const idx=+b.dataset.index;
-    const placed=S.placements[idx];
-    if(!placed) return;
-    _drag={from:"blank",idx, id:placed.id, word:placed.word};
-    e.dataTransfer.setData("text/id", placed.id);
-    e.dataTransfer.setData("text/label", placed.word);
+    const idx=+b.dataset.index, placed=S.placements[idx]; if(!placed) return;
+    _drag={from:"blank",idx,id:placed.id,word:placed.word};
+    e.dataTransfer.setData("text/id",placed.id); e.dataTransfer.setData("text/label",placed.word);
   });
   b.draggable=true;
 }
@@ -175,61 +150,34 @@ function renderSentence(){
   parts.forEach((t,i)=>{
     host.append(document.createTextNode(t));
     if(i<parts.length-1){
-      const sp=document.createElement("span");
-      sp.className="blank"; sp.dataset.index=i;
+      const sp=document.createElement("span"); sp.className="blank"; sp.dataset.index=i;
       enableBlank(sp); host.append(sp);
     }
   });
 }
 
-/* Bank + chips (unique IDs per chip) */
 function makeChip(word){
   const id=`c${++chipSeq}`;
   const chip=document.createElement("span");
-  chip.className="chip";
-  chip.textContent=word;
-  chip.draggable=true;
-  chip.dataset.id=id;
-
+  chip.className="chip"; chip.textContent=word; chip.draggable=true; chip.dataset.id=id;
   chip.addEventListener("dragstart",e=>{
     _drag={from:"bank",id,word,node:chip};
-    e.dataTransfer.setData("text/id", id);
-    e.dataTransfer.setData("text/label", word);
+    e.dataTransfer.setData("text/id",id); e.dataTransfer.setData("text/label",word);
   });
-
-  // CLICK-TO-FILL: put into next available blank
   chip.addEventListener("click",()=>{
-    const nextIdx = S.placements.findIndex(x=>!x);
-    if(nextIdx === -1) return; // none free
-    placeChipInBlank({id,word}, nextIdx, /*fromDrag=*/false);
+    const nextIdx=S.placements.findIndex(x=>!x);
+    if(nextIdx===-1) return;
+    placeChipInBlank({id,word}, nextIdx, false);
   });
-
-  S.chipsMap.set(id, chip);
-  return {id, node:chip, word};
+  S.chipsMap.set(id,chip);
+  return {id,node:chip,word};
 }
+function addChipToBankById(id){const chip=S.chipsMap.get(id); if(chip) $("#bank").append(chip)}
+function returnChipToBank(id){addChipToBankById(id)}
+function renderBank(){ $("#bank").innerHTML=""; S.tokens.forEach(tok=>$("#bank").append(makeChip(tok).node)) }
 
-function addChipToBankById(id){
-  const chip=S.chipsMap.get(id);
-  if(chip) $("#bank").append(chip);
-}
-function returnChipToBank(id){
-  addChipToBankById(id);
-}
-
-function renderBank(){
-  $("#bank").innerHTML="";
-  S.tokens.forEach(tok=>{
-    const item = makeChip(tok);
-    $("#bank").append(item.node);
-  });
-}
-
-/* Core placement helper (used by drag-drop and click-to-fill) */
 function placeChipInBlank(item, idx, fromDrag){
-  // if target already filled, return that chip first
   if(S.placements[idx]) returnChipToBank(S.placements[idx].id);
-
-  // if coming from another blank, clear that source
   if(_drag && _drag.from==="blank"){
     const from=_drag.idx;
     if(from!==idx){
@@ -238,138 +186,83 @@ function placeChipInBlank(item, idx, fromDrag){
       el.textContent=""; el.className="blank";
     }
   }
-
-  // if coming from bank (drag or click), remove node from bank
   if((_drag && _drag.from==="bank") || !fromDrag){
     const node=S.chipsMap.get(item.id);
     if(node && node.parentElement) node.parentElement.removeChild(node);
   }
-
-  // set placement
-  S.placements[idx]={id:item.id, word:item.word};
+  S.placements[idx]={id:item.id,word:item.word};
   const target=document.querySelector(`.blank[data-index="${idx}"]`);
-  target.textContent=item.word;
-  target.className="blank used";
-  _drag=null;
+  target.textContent=item.word; target.className="blank used"; _drag=null;
 }
 
-/* Return from blank to bank by dropping on bank */
 $("#bank").addEventListener("dragover",e=>e.preventDefault());
 $("#bank").addEventListener("drop",e=>{
   e.preventDefault();
   if(_drag && _drag.from==="blank"){
-    const from=_drag.idx;
-    returnChipToBank(_drag.id);
-    S.placements[from]=null;
-    const el=document.querySelector(`.blank[data-index="${from}"]`);
-    el.textContent=""; el.className="blank";
-    _drag=null;
+    const from=_drag.idx; returnChipToBank(_drag.id); S.placements[from]=null;
+    const el=document.querySelector(`.blank[data-index="${from}"]`); el.textContent=""; el.className="blank"; _drag=null;
   }
 });
 
-/* Buttons */
 function resetToFrame1(){
-  $("#game").style.display="none";
-  $("#preplay").style.display="block";
-  S.placements=Array(S.blanks).fill(null);
-  renderPreview();
-  $("#checkBtn").classList.remove("hidden");
-  $("#greatBtn").classList.add("hidden");
-  const learn=$("#learnBtn"); learn.classList.add("hidden"); learn.style.opacity=0; learn.style.transform="translateX(12px)";
+  $("#game").style.display="none"; $("#preplay").style.display="block";
+  S.placements=Array(S.blanks).fill(null); renderPreview();
+  $("#checkBtn").classList.remove("hidden"); $("#greatBtn").classList.add("hidden");
+  const a=$("#learnBtn"); a.classList.add("hidden"); a.style.opacity=0; a.style.transform="translateX(12px)";
   $("#bank").querySelectorAll(".chip").forEach(ch=>ch.classList.remove("chipWrong"));
 }
-function resetInGame(){
-  S.placements=Array(S.blanks).fill(null);
-  document.querySelectorAll(".blank").forEach(b=>{b.textContent=""; b.className="blank";});
-  renderBank();
-  $("#bank").querySelectorAll(".chip").forEach(ch=>ch.classList.remove("chipWrong"));
-}
+function celebrate(){for(let i=0;i<18;i++){const c=document.createElement("div");c.className="confetti";c.style.setProperty("--dx",`${(Math.random()*240-120)|0}px`);document.body.appendChild(c);setTimeout(()=>c.remove(),950)}}
 
 $("#resetBtn").onclick=resetToFrame1;
-
-function celebrate(){
-  for(let i=0;i<18;i++){
-    const c=document.createElement("div");
-    c.className="confetti";
-    c.style.setProperty("--dx",`${(Math.random()*240-120)|0}px`);
-    document.body.appendChild(c);
-    setTimeout(()=>c.remove(),950);
-  }
-}
 
 $("#checkBtn").onclick=()=>{
   let all=true;
   document.querySelectorAll(".blank").forEach((b,i)=>{
-    const placed=S.placements[i];
-    const ok=placed && placed.word===S.correct[i];
+    const placed=S.placements[i], ok=placed && placed.word===S.correct[i];
     b.classList.remove("used","correct","incorrect");
-    if(placed){ b.classList.add(ok?"correct":"incorrect"); b.textContent=placed.word; }
-    else all=false;
+    if(placed){ b.classList.add(ok?"correct":"incorrect"); b.textContent=placed.word } else all=false;
     if(!ok) all=false;
   });
   if(all){
-    $("#checkBtn").classList.add("pulse");
-    celebrate();
+    $("#checkBtn").classList.add("pulse"); celebrate();
     setTimeout(()=>{
       $("#checkBtn").classList.add("slideOutRight");
       setTimeout(()=>{
         $("#checkBtn").classList.add("hidden");
-        $("#greatBtn").classList.remove("hidden");
-        $("#greatBtn").classList.add("pulse");
-        if(S.link){
-          const a=$("#learnBtn"); a.href=S.link; a.classList.remove("hidden");
-          setTimeout(()=>{ a.classList.add("slideInRight"); a.style.opacity=1; }, 900);
-        }
+        $("#greatBtn").classList.remove("hidden"); $("#greatBtn").classList.add("pulse");
+        if(S.link){const a=$("#learnBtn"); a.href=S.link; a.classList.remove("hidden"); setTimeout(()=>{a.classList.add("slideInRight"); a.style.opacity=1},900)}
         $("#bank").querySelectorAll(".chip").forEach(ch=>ch.classList.add("chipWrong"));
-      }, 350);
-    }, 620);
+      },350);
+    },620);
   }
 };
 
 $("#greatBtn").onclick=()=>{};
 
 $("#playBtn").onclick=()=>{
-  $("#preplay").style.display="none";
-  $("#game").style.display="block";
+  $("#preplay").style.display="none"; $("#game").style.display="block";
   $("#dateLeft").textContent=$("#dateTop").textContent;
-  renderSentence();
-  S.placements=Array(S.blanks).fill(null);
-  renderBank();
+  renderSentence(); S.placements=Array(S.blanks).fill(null); renderBank();
 };
 
-/* Data */
-function choose(rows,ymd){
-  const url=new URL(location.href);const o=url.searchParams.get("date")||ymd;
-  return rows.find(r=>(r[F.date]||"").trim()===o);
-}
+function choose(rows,ymd){const url=new URL(location.href);const o=url.searchParams.get("date")||ymd;return rows.find(r=>(r[F.date]||"").trim()===o)}
 
 (async function init(){
-  const today=toYMD("Europe/London"); const humanStr=human("Europe/London");
+  const today=toYMD("Europe/London"), humanStr=human("Europe/London");
   $("#dateTop").textContent=humanStr; $("#dateLeft").textContent=humanStr;
 
   const csv=await fetch(CSV_URL,{cache:"no-store"}).then(r=>r.text());
   const parsed=Papa.parse(csv,{header:true,skipEmptyLines:true});
   const row=choose(parsed.data,today);
 
-  if(!row || (row[F.type]||"").trim()!==EXPECTED){
-    $("#preplay").style.display="none"; $("#empty").classList.remove("hidden"); return;
-  }
+  if(!row || (row[F.type]||"").trim()!==EXPECTED){ $("#preplay").style.display="none"; $("#empty").classList.remove("hidden"); return }
 
-  S.q=(row[F.q]||"").trim();
-  S.correct=splitList(row[F.correct]);
-  S.distr=splitList(row[F.distr]);
-  S.link=(row[F.link]||"").trim();
+  S.q=(row[F.q]||"").trim(); S.correct=splitList(row[F.correct]); S.distr=splitList(row[F.distr]); S.link=(row[F.link]||"").trim();
   S.blanks=(S.q.match(/\[blank\]/g)||[]).length;
-
-  if(S.blanks!==S.correct.length){
-    $("#preplay").style.display="none"; $("#empty").classList.remove("hidden");
-    $("#empty").textContent="Config error: [blank] count must equal correct_words."; return;
-  }
+  if(S.blanks!==S.correct.length){ $("#preplay").style.display="none"; $("#empty").classList.remove("hidden"); $("#empty").textContent="Config error: [blank] count must equal correct_words."; return }
 
   S.tokens=[...S.correct, ...S.distr.slice(0, Math.max(0, TOTAL_OPTIONS - S.correct.length))];
-  S.tokens=shuffle(S.tokens);
-  S.placements=Array(S.blanks).fill(null);
-
+  S.tokens=shuffle(S.tokens); S.placements=Array(S.blanks).fill(null);
   renderPreview();
 })();
 </script>
