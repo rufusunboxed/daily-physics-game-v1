@@ -73,7 +73,7 @@
   .btnGreat{width:131px;height:32px;background:#009901;border-color:#009901;color:#fff;font-weight:400;font-size:16px;pointer-events:none}
   .btnLink{
     width:313px;height:32px;background:#fff;border:1px solid #000;border-radius:5px;color:#000;font-size:16px;font-weight:400;
-    text-decoration:none;display:inline-flex;align-items:center;justify-content:center;opacity:0;transform:translateX(12px)
+    text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;opacity:0;transform:translateX(12px)
   }
   .btnLink:hover{background:#f7f7f7}
   .hidden{display:none}
@@ -85,6 +85,14 @@
   .pulse{animation:pulse .6s ease-in-out 2}
   .slideOutRight{animation:slideOutRight .35s ease-out forwards}
   .slideInRight{animation:slideInRight .35s ease-out forwards}
+
+  /* Background pulse on success */
+  @keyframes bgPulse {
+    0%   { background: var(--light); }
+    35%  { background: #dff6e3; } /* soft green flash */
+    100% { background: var(--light); }
+  }
+  .bgPulse{ animation:bgPulse .6s ease-out 1; }
 
   /* Confetti */
   .confetti{position:fixed;left:50%;top:20%;width:6px;height:10px;background:#009901;border-radius:1px;opacity:.9;animation:fall .9s ease-out forwards}
@@ -134,7 +142,15 @@
           <button class="btn" id="resetBtn">Reset</button>
           <button class="btn btnCheck" id="checkBtn">Check</button>
           <button class="btn btnGreat hidden" id="greatBtn">Great Job!</button>
-          <a class="btnLink hidden" id="learnBtn" target="_blank" rel="noopener">Learn more about this topic here</a>
+          <a class="btnLink hidden" id="learnBtn" target="_blank" rel="noopener">
+            Learn more about this topic here
+            <!-- inline external-link icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                 width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor">
+              <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3z"/>
+              <path d="M5 5h6v2H7v8h8v-4h2v6H5z"/>
+            </svg>
+          </a>
         </div>
       </section>
 
@@ -314,10 +330,9 @@ function resetGame(){
 
   // Buttons/links
   const check=$("#checkBtn");
-  check.classList.remove("hidden");
-  check.classList.remove("slideOutRight","pulse");   // <-- critical fix
-  check.style.opacity = "";                           // safety reset
-  check.style.transform = "";                         // safety reset
+  check.classList.remove("hidden","slideOutRight","pulse"); // ensure visible and not animated out
+  check.style.opacity = "";  // safety reset
+  check.style.transform = ""; // safety reset
 
   const great=$("#greatBtn");
   great.classList.add("hidden");
@@ -361,6 +376,12 @@ $("#checkBtn").onclick=()=>{
     if(!ok) all=false;
   });
   if(all){
+    // Trigger green background pulse on the card
+    const card=document.querySelector(".card");
+    card.classList.remove("bgPulse"); // allow retrigger
+    void card.offsetWidth;            // reflow to restart animation
+    card.classList.add("bgPulse");
+
     const btn=$("#checkBtn");
     btn.classList.add("pulse");
     celebrate();
