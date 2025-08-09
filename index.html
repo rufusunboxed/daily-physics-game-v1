@@ -6,72 +6,61 @@
 <title>Today’s Physics Game</title>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <style>
-  /* BRAND */
   :root{
-    --green:#009901;
-    --red:#FF0000;
-    --light:#F0F0F0;
-    --orange:#FF9700;
-    --ink:#111;
-    --muted:#666;
+    --green:#009901; --red:#FF0000; --light:#F0F0F0; --orange:#FF9700; --ink:#111;
   }
-  html,body{margin:0;background:#fff;color:var(--ink);}
-  body{font-family:"Century Gothic","Segoe UI",Arial,sans-serif;font-size:20px;line-height:1.5;}
-
-  /* CANVAS */
+  html,body{margin:0;background:#fff;color:var(--ink)}
+  body{font-family:"Century Gothic","Apple Gothic","Segoe UI",Arial,sans-serif;font-size:20px;line-height:1.5}
   .wrap{max-width:940px;margin:0 auto;padding:24px 0;display:flex;justify-content:center}
-  .card{
-    width:760px; /* frame width */
-    background:var(--light);
-    border:2px solid var(--orange);
-    border-radius:20px;
-    box-sizing:border-box;
-    position:relative;
-  }
+  .card{width:760px;background:var(--light);border:2px solid var(--orange);border-radius:20px;box-sizing:border-box}
 
-  /* FRAME 1 (pre-play) */
-  #preplay{height:260px; /* frame 1 height */ text-align:center; position:relative;}
-  .dateTop{font-size:12px;margin-top:30px;margin-bottom:5px;color:#000}
+  /* Frame 1 */
+  #preplay{height:260px;text-align:center;position:relative}
+  .dateTop{font-size:12px;margin-top:30px;margin-bottom:5px}
   .title24{font-weight:700;font-size:24px;margin:0}
-  .previewBox{
-    width:calc(100% - 80px); /* 40px side padding each */
-    margin:30px auto 0 auto;
-    background:#fff;border-radius:20px;padding:20px;box-sizing:border-box;
-    font-size:18px;
-  }
-  .btnPlay{
-    width:87px;height:36px;line-height:36px;margin:30px auto 0 auto;
-    background:var(--orange); color:#000; border-radius:8px; /* rounded feel; image shows >5 */
-    display:block; font-weight:700; font-size:18px; border:0; cursor:pointer;
-  }
+  .previewBox{width:calc(100% - 80px);margin:30px auto 0;background:#fff;border-radius:20px;padding:20px;box-sizing:border-box;font-size:18px}
+  .btnPlay{width:87px;height:36px;margin:30px auto 0;background:var(--orange);color:#000;border-radius:5px;border:0;cursor:pointer;font-weight:700;font-size:18px;transition:filter .15s,transform .05s}
+  .btnPlay:hover{filter:brightness(0.95)}
+  .btnPlay:active{transform:scale(.98)}
 
-  /* FRAMES 2–5 (in-game) */
-  #game{padding:30px 30px 30px 30px; display:none;}
-  .dateLeft{font-size:12px; margin-left:0; color:#000}
-  .rowGap20{margin-top:20px}
-  .sentence{font-size:18px; text-align:left}
+  /* In-game */
+  #game{padding:30px;display:none}
+  .dateLeft{font-size:12px}
+  .sentence{font-size:18px;text-align:left;margin-top:20px}
   .blank{
-    display:inline-flex; width:118px; height:32px; box-sizing:border-box;
-    border:1px solid var(--orange); border-radius:8px; background:#fff;
-    vertical-align:middle; align-items:center; justify-content:center;
-    margin:0 4px 6px 4px; padding:0 8px; cursor:grab;
+    display:inline-flex;width:118px;height:32px;box-sizing:border-box;
+    border:1px solid var(--orange);border-radius:5px;background:#fff;
+    align-items:center;justify-content:center;margin:0 4px 6px 4px;padding:0 8px;cursor:grab
   }
-  .blank.used{border-color:#000;}              /* frame 3 before check */
-  .blank.correct{border-color:var(--green);}   /* frame 4/5 */
-  .blank.incorrect{border-color:var(--red);}   /* frame 4 */
+  .blank.used{border-color:#000}
+  .blank.correct{border-color:var(--green)}
+  .blank.incorrect{border-color:var(--red)}
   .bank{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start;margin-top:20px}
   .chip{
-    min-width:84px; height:26px; box-sizing:border-box;
-    padding:0 10px; display:inline-flex; align-items:center; justify-content:center;
-    border:1px dashed #000; border-radius:8px; background:#fff; cursor:grab;
-    font-size:12px; line-height:12px;
+    min-width:84px;height:26px;padding:0 10px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
+    border:1px dashed #000;border-radius:5px;background:#fff;cursor:grab;font-size:12px;line-height:12px;white-space:nowrap
   }
+  .chip:hover{background:#f7f7f7}
+  .chipWrong{border-color:var(--red)}
   .controls{display:flex;gap:20px;justify-content:flex-start;margin-top:30px}
-  .btn{width:87px;height:32px;border-radius:8px;border:1px solid #000;background:#fff;color:#000;font-weight:700;font-size:18px;cursor:pointer}
+  .btn{width:87px;height:32px;border-radius:5px;border:1px solid #000;background:#fff;color:#000;font-weight:700;font-size:18px;cursor:pointer;transition:filter .15s,background .15s,transform .05s}
+  .btn:hover{background:#f7f7f7}
+  .btn:active{transform:scale(.98)}
   .btnCheck{background:var(--orange);border-color:var(--orange)}
+  .btnCheck:hover{filter:brightness(0.95)}
   .btnGreat{width:131px;height:32px;background:var(--green);border-color:var(--green);color:#fff;font-weight:400;font-size:16px}
-  .btnLink{width:313px;height:32px;background:#fff;border:1px solid #000;border-radius:8px;color:#000;font-size:16px;font-weight:400;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+  .btnGreat:hover{filter:brightness(0.95)}
+  .btnLink{width:313px;height:32px;background:#fff;border:1px solid #000;border-radius:5px;color:#000;font-size:16px;font-weight:400;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;opacity:0;transform:translateX(12px)}
+  .btnLink:hover{background:#f7f7f7}
   .hidden{display:none}
+
+  /* Animations */
+  @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+  @keyframes slideOutRight{to{transform:translateX(24px);opacity:0}}
+  @keyframes slideInRight{from{transform:translateX(12px);opacity:0}to{transform:translateX(0);opacity:1}}
+  .pulse{animation:pulse .6s ease-in-out 2}
+  .slideOutRight{animation:slideOutRight .35s ease-out forwards}
+  .slideInRight{animation:slideInRight .35s ease-out forwards}
 
   /* Confetti */
   .confetti{position:fixed;left:50%;top:20%;width:6px;height:10px;background:var(--green);border-radius:1px;opacity:.9;animation:fall .9s ease-out forwards}
@@ -81,7 +70,6 @@
 <body>
   <div class="wrap">
     <div class="card">
-
       <!-- FRAME 1 -->
       <section id="preplay">
         <div class="dateTop" id="dateTop">Loading…</div>
@@ -93,7 +81,7 @@
       <!-- FRAMES 2–5 -->
       <section id="game">
         <div class="dateLeft" id="dateLeft">—</div>
-        <div class="rowGap20 sentence" id="sentence"></div>
+        <div class="sentence" id="sentence"></div>
 
         <div class="bank" id="bank"></div>
 
@@ -117,7 +105,9 @@ const EXPECTED="fill_blank";
 const TOTAL_OPTIONS=5;
 
 /* STATE */
-const S={q:"",correct:[],distr:[],blanks:0,placements:[],tokens:[],link:""};
+const S={q:"",correct:[],distr:[],blanks:0,placements:[],tokens:[],link:"",chipsMap:new Map()};
+let chipSeq=0;
+let _drag=null;
 
 /* Utils */
 function toYMD(tz="Europe/London",d=new Date()){
@@ -136,43 +126,56 @@ function splitList(s){return (s||"").split(",").map(x=>x.trim()).filter(Boolean)
 function $(q){return document.querySelector(q)}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
-/* Build */
-function renderPreview(){
-  $("#previewBox").textContent=S.q.replace(/\[blank\]/g,"______");
-}
+/* Preview */
+function renderPreview(){ $("#previewBox").textContent=S.q.replace(/\[blank\]/g,"______"); }
+
+/* Sentence + blanks */
 function enableBlank(b){
   b.addEventListener("dragover",e=>e.preventDefault());
   b.addEventListener("drop",e=>{
     e.preventDefault();
     const idx=+b.dataset.index;
-    const word=e.dataTransfer.getData("text/plain");
-    // clear old
-    if(S.placements[idx]) addChip(S.placements[idx]);
-    // if dragged from another blank, clear that
-    if(window._drag && _drag.from==="blank"){
+    const id=e.dataTransfer.getData("text/id");
+    const word=e.dataTransfer.getData("text/label");
+    if(!id) return;
+
+    // return existing placed word (if any) to shelf
+    if(S.placements[idx]) returnChipToBank(S.placements[idx].id);
+
+    // if dragged from another blank, clear that blank
+    if(_drag && _drag.from==="blank"){
       const from=_drag.idx;
       if(from!==idx){
         S.placements[from]=null;
         const el=document.querySelector(`.blank[data-index="${from}"]`);
-        el.textContent=""; el.classList.remove("used","correct","incorrect");
+        el.textContent=""; el.className="blank";
       }
     }
-    // if from bank, remove chip node
-    if(window._drag && _drag.from==="bank") _drag.node.remove();
+    // if from bank, remove chip node from bank (not from map)
+    if(_drag && _drag.from==="bank"){
+      const node=S.chipsMap.get(id);
+      if(node && node.parentElement) node.parentElement.removeChild(node);
+    }
 
-    S.placements[idx]=word;
+    S.placements[idx]={id,word};
     b.textContent=word;
-    b.classList.add("used"); b.classList.remove("correct","incorrect");
+    b.className="blank used";
     _drag=null;
   });
+
+  // allow drag out of blank
   b.addEventListener("dragstart",e=>{
-    if(b.textContent.trim()){
-      _drag={from:"blank",idx:+b.dataset.index,word:b.textContent.trim()};
-      e.dataTransfer.setData("text/plain",_drag.word);
-    }
+    if(!b.textContent.trim()) return;
+    const idx=+b.dataset.index;
+    const placed=S.placements[idx];
+    if(!placed) return;
+    _drag={from:"blank",idx, id:placed.id, word:placed.word};
+    e.dataTransfer.setData("text/id", placed.id);
+    e.dataTransfer.setData("text/label", placed.word);
   });
   b.draggable=true;
 }
+
 function renderSentence(){
   const host=$("#sentence"); host.innerHTML="";
   const parts=S.q.split("[blank]");
@@ -185,45 +188,45 @@ function renderSentence(){
     }
   });
 }
-function addChip(w){
+
+/* Bank + chips (unique IDs per chip) */
+function makeChip(word){
+  const id=`c${++chipSeq}`;
   const chip=document.createElement("span");
-  chip.className="chip"; chip.textContent=w; chip.draggable=true;
+  chip.className="chip";
+  chip.textContent=word;
+  chip.draggable=true;
+  chip.dataset.id=id;
   chip.addEventListener("dragstart",e=>{
-    _drag={from:"bank",node:chip,word:w};
-    e.dataTransfer.setData("text/plain",w);
+    _drag={from:"bank",id,word,node:chip};
+    e.dataTransfer.setData("text/id", id);
+    e.dataTransfer.setData("text/label", word);
   });
-  $("#bank").append(chip);
+  S.chipsMap.set(id, chip);
+  return {id, node:chip, word};
+}
+function addChipToBankById(id){
+  const chip=S.chipsMap.get(id);
+  if(chip) $("#bank").append(chip);
+}
+function returnChipToBank(id){
+  addChipToBankById(id);
 }
 function renderBank(){
   $("#bank").innerHTML="";
-  S.tokens.forEach(addChip);
-}
-function resetToFrame1(){
-  // clear game
-  $("#game").style.display="none";
-  $("#preplay").style.display="block";
-  // reset placements for next play
-  S.placements=Array(S.blanks).fill(null);
-  // restore preview text
-  renderPreview();
-  // buttons back
-  $("#checkBtn").classList.remove("hidden");
-  $("#greatBtn").classList.add("hidden");
-  $("#learnBtn").classList.add("hidden");
-}
-function resetInGame(){
-  S.placements=Array(S.blanks).fill(null);
-  document.querySelectorAll(".blank").forEach(b=>{b.textContent=""; b.className="blank";});
-  renderBank();
+  S.tokens.forEach(tok=>{
+    const item = makeChip(tok);
+    $("#bank").append(item.node);
+  });
 }
 
-/* Interactions */
-let _drag=null;
+/* Return from blank to bank by dropping on bank */
 $("#bank").addEventListener("dragover",e=>e.preventDefault());
 $("#bank").addEventListener("drop",e=>{
   e.preventDefault();
   if(_drag && _drag.from==="blank"){
-    const from=_drag.idx; addChip(_drag.word);
+    const from=_drag.idx;
+    returnChipToBank(_drag.id);
     S.placements[from]=null;
     const el=document.querySelector(`.blank[data-index="${from}"]`);
     el.textContent=""; el.className="blank";
@@ -231,33 +234,78 @@ $("#bank").addEventListener("drop",e=>{
   }
 });
 
+/* Buttons */
+function resetToFrame1(){
+  $("#game").style.display="none";
+  $("#preplay").style.display="block";
+  // reset placements and bank
+  S.placements=Array(S.blanks).fill(null);
+  renderPreview();
+  // reset buttons
+  $("#checkBtn").classList.remove("hidden");
+  $("#greatBtn").classList.add("hidden");
+  const learn=$("#learnBtn"); learn.classList.add("hidden"); learn.style.opacity=0; learn.style.transform="translateX(12px)";
+  // clear any red style on bank chips
+  $("#bank").querySelectorAll(".chip").forEach(ch=>ch.classList.remove("chipWrong"));
+}
+function resetInGame(){
+  S.placements=Array(S.blanks).fill(null);
+  document.querySelectorAll(".blank").forEach(b=>{b.textContent=""; b.className="blank";});
+  renderBank();
+  $("#bank").querySelectorAll(".chip").forEach(ch=>ch.classList.remove("chipWrong"));
+}
+
 $("#resetBtn").onclick=resetToFrame1;
+
+function celebrate(){
+  for(let i=0;i<18;i++){
+    const c=document.createElement("div");
+    c.className="confetti";
+    c.style.setProperty("--dx",`${(Math.random()*240-120)|0}px`);
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),950);
+  }
+}
 
 $("#checkBtn").onclick=()=>{
   let all=true;
   document.querySelectorAll(".blank").forEach((b,i)=>{
     const placed=S.placements[i];
-    const ok=placed && placed===S.correct[i];
+    const ok=placed && placed.word===S.correct[i];
     b.classList.remove("used","correct","incorrect");
-    if(placed){ b.classList.add(ok?"correct":"incorrect"); }
+    if(placed){ b.classList.add(ok?"correct":"incorrect"); b.textContent=placed.word; }
     else all=false;
     if(!ok) all=false;
   });
   if(all){
-    $("#checkBtn").classList.add("hidden");
-    $("#greatBtn").classList.remove("hidden");
-    if(S.link){ const a=$("#learnBtn"); a.href=S.link; a.classList.remove("hidden"); }
-    for(let i=0;i<18;i++){const c=document.createElement("div");c.className="confetti";c.style.setProperty("--dx",`${(Math.random()*240-120)|0}px`);document.body.appendChild(c);setTimeout(()=>c.remove(),950);}
+    // success UI: pulse then slide out Check; delay + slide in Learn
+    $("#checkBtn").classList.add("pulse");
+    celebrate();
+    setTimeout(()=>{
+      $("#checkBtn").classList.add("slideOutRight");
+      setTimeout(()=>{
+        $("#checkBtn").classList.add("hidden");
+        $("#greatBtn").classList.remove("hidden");
+        $("#greatBtn").classList.add("pulse");
+        if(S.link){
+          const a=$("#learnBtn"); a.href=S.link; a.classList.remove("hidden");
+          setTimeout(()=>{ a.classList.add("slideInRight"); a.style.opacity=1; }, 900); // ~1s delay
+        }
+        // mark remaining shelf chips red dotted
+        $("#bank").querySelectorAll(".chip").forEach(ch=>ch.classList.add("chipWrong"));
+      }, 350);
+    }, 620); // let the pulse run twice
   }
 };
 
-$("#greatBtn").onclick=()=>{}; // no-op (could advance to tomorrow etc.)
+$("#greatBtn").onclick=()=>{}; // placeholder (stays visible)
 
 $("#playBtn").onclick=()=>{
   $("#preplay").style.display="none";
   $("#game").style.display="block";
   $("#dateLeft").textContent=$("#dateTop").textContent;
   renderSentence();
+  S.placements=Array(S.blanks).fill(null);
   renderBank();
 };
 
@@ -266,6 +314,7 @@ function choose(rows,ymd){
   const url=new URL(location.href);const o=url.searchParams.get("date")||ymd;
   return rows.find(r=>(r[F.date]||"").trim()===o);
 }
+
 (async function init(){
   const today=toYMD("Europe/London"); const humanStr=human("Europe/London");
   $("#dateTop").textContent=humanStr; $("#dateLeft").textContent=humanStr;
@@ -274,7 +323,9 @@ function choose(rows,ymd){
   const parsed=Papa.parse(csv,{header:true,skipEmptyLines:true});
   const row=choose(parsed.data,today);
 
-  if(!row || (row[F.type]||"").trim()!==EXPECTED){ $("#preplay").style.display="none"; $("#empty").classList.remove("hidden"); return; }
+  if(!row || (row[F.type]||"").trim()!==EXPECTED){
+    $("#preplay").style.display="none"; $("#empty").classList.remove("hidden"); return;
+  }
 
   S.q=(row[F.q]||"").trim();
   S.correct=splitList(row[F.correct]);
@@ -282,7 +333,10 @@ function choose(rows,ymd){
   S.link=(row[F.link]||"").trim();
   S.blanks=(S.q.match(/\[blank\]/g)||[]).length;
 
-  if(S.blanks!==S.correct.length){ $("#preplay").style.display="none"; $("#empty").classList.remove("hidden"); $("#empty").textContent="Config error: [blank] count must equal correct_words."; return; }
+  if(S.blanks!==S.correct.length){
+    $("#preplay").style.display="none"; $("#empty").classList.remove("hidden");
+    $("#empty").textContent="Config error: [blank] count must equal correct_words."; return;
+  }
 
   S.tokens=[...S.correct, ...S.distr.slice(0, Math.max(0, TOTAL_OPTIONS - S.correct.length))];
   S.tokens=shuffle(S.tokens);
