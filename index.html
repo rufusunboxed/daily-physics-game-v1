@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Daily Physics Fill-in-the-Blanks</title>
+<!-- PapaParse for robust CSV parsing -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+  :root { --bg:#f7f7fb; --card:#ffffff; --ink:#222; --muted:#666; --ok:#16a34a; --bad:#dc2626; --accent:#2563eb; }
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+  .wrap{max-width:900px;margin:32px auto;padding:16px;}
+  .card{background:var(--card);border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:20px;}
+  header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;}
+  h1{font-size:20px;margin:0;}
+  .date{color:var(--muted);font-size:14px}
+  .sentence{font-size:20px;line-height:1.6;margin:12px 0 20px;}
+  .blank{display:inline-flex;min-width:120px;min-height:42px;padding:8px 10px;margin:0 4px;border:2px dashed #cbd5e1;border-radius:12px;vertical-align:middle;align-items:center;justify-content:center;background:#f1f5f9;transition:.15s;}
+  .blank.filled{border-style:solid;background:#eef2ff;border-color:#93c5fd}
+  .bank{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;}
+  .chip{user-select:none;cursor:grab;background:#e2e8f0;border:1px solid #cbd5e1;border-radius:999px;padding:8px 12px;display:inline-flex;align-items:center;min-height:36px}
+  .chip:active{cursor:grabbing}
+  .controls{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+  button{appearance:none;border:0;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff}
+  button.secondary{background:#e5e7eb;color:#111}
+  .msg{margin-top:12px;font-weight:600}
+  .msg.ok{color:var(--ok)} .msg.bad{color:var(--bad)}
+  .note{color:var(--muted);font-size:12px;margin-top:8px}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <header>
+      <h1>Daily Physics • Fill the Blanks</h1>
+      <div class="date" id="dateLabel"></div>
+    </header>
+    <div id="questionArea">
+      <div class="sentence" id="sentence">Loading…</div>
+      <div class="bank" id="bank"></div>
+      <div class="controls">
+        <button id="checkBtn">Check</button>
+        <button class="secondary" id="resetBtn">Reset</button>
+      </div>
+      <div class="msg" id="message"></div>
+      <div class="note">Tip: drag a word out of a blank to return it to the bank.</div>
+    </div>
+    <div id="emptyState" class="hidden">No question found for this date.</div>
+  </div>
+</div>
+
+<script>
+/* ====== CONFIG ====== */
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJlHGcShI4Ek9XrNBx_-xD7CT7uS2K2lhmzr1WU6z48u0xNcncL0RGfYFSzzPkTUZ-yurB7L0x7Szk/pub?gid=0&single=true&output=csv";
+const SHEET_DATE_FIELD = "date";
+const SHEET_TYPE_FIELD = "type";          // expect "fill_blank"
+const SHEET_QUESTION_FIELD = "question";  // contains [blank] tokens
+const SHEET_CORRECT_FIELD = "correct_words"; // comma-separated, order matters
+const SHEET_DISTRACT_FIELD = "distractors";  // comma-separated
+const EXPECTED_TYPE = "fill_blank";
+const TOTAL_OPTIONS = 5; // target number of chips
+
+/* ====== UTILITIES ====== */
+function toYMDInTimeZone(tz = "Europe/London", date = new Date()) {
+  const [y,m,d] = new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date)
+    .filter(p => p.type !== 'literal').map(p=>p.value);
+  return `${y}-${m}-${d}`;
+}
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
+function splitCSVList(s){ if(!s) return []; return s.split(",").map(x=>x.trim()).filter(Boolean); }
+function qs(sel){ return document.querySelector(sel); }
+
+const state = {
+  correctWords: [],
+  blanksCount: 0,
+  placements: [], // index -> word or null
+  tokens: []      // pool words
+};
+
+/* ====== RENDERING ====== */
+function renderSentence(raw, blanksCount){
+  const container = qs("#sentence");
+  container.innerHTML = "";
+  let remaining = blanksCount;
+  const parts = raw.split("[blank]");
+  parts.forEach((part,i)=>{
+    container.append(document.createTextNode(part));
+    if(i < parts.length-1){
+      const b = document.createElement("span");
+      b.className = "blank";
+      b.setAttribute("data-index", (state.blanksCount - remaining).toString());
+      b.setAttribute("droppable","true");
+      b.addEventListener("dragover", onDragOverBlank);
+      b.addEventListener("drop", onDropOnBlank);
+      b.addEventListener("dragenter", e=>e.preventDefault());
+      b.addEventListener("click", () => { // remove placed chip on click
+        const idx = parseInt(b.getAttribute("data-index"));
+        if(state.placements[idx]){
+          addChipToBank(state.placements[idx]);
+          state.placements[idx] = null;
+          b.classList.remove("filled");
+          b.textContent = "";
+        }
+      });
+      container.append(b);
+      remaining--;
+    }
+  });
+}
+
+function renderBank(tokens){
+  const bank = qs("#bank");
+  bank.innerHTML = "";
+  tokens.forEach(w => addChipToBank(w));
+}
+
+function addChipToBank(word){
+  const bank = qs("#bank");
+  const chip = document.createElement("span");
+  chip.className = "chip";
+  chip.textContent = word;
+  chip.setAttribute("draggable","true");
+  chip.addEventListener("dragstart", onDragStartChip);
+  bank.append(chip);
+}
+
+/* ====== DnD ====== */
+let dragPayload = null;
+function onDragStartChip(e){
+  dragPayload = { word: e.target.textContent, from: "bank", node: e.target };
+  e.dataTransfer.setData("text/plain", dragPayload.word);
+}
+function onDragOverBlank(e){ e.preventDefault(); }
+function onDropOnBlank(e){
+  e.preventDefault();
+  const target = e.currentTarget;
+  const idx = parseInt(target.getAttribute("data-index"));
+  // if blank already filled, return existing word to bank
+  if(state.placements[idx]){
+    addChipToBank(state.placements[idx]);
+  }
+  let word = e.dataTransfer.getData("text/plain");
+  // if dropping from another blank, we need to remove from there
+  if(dragPayload && dragPayload.from === "blank"){
+    const fromIdx = dragPayload.fromIndex;
+    state.placements[fromIdx] = null;
+    document.querySelector(`.blank[data-index="${fromIdx}"]`).classList.remove("filled");
+    document.querySelector(`.blank[data-index="${fromIdx}"]`).textContent = "";
+  } else if(dragPayload && dragPayload.from === "bank"){
+    // remove the chip from bank
+    dragPayload.node.remove();
+  }
+  state.placements[idx] = word;
+  target.classList.add("filled");
+  target.textContent = word;
+  dragPayload = null;
+}
+
+// enable dragging from a filled blank back to another blank/bank
+document.addEventListener("dragstart", (e)=>{
+  const b = e.target.closest(".blank");
+  if(b && b.textContent.trim()){
+    dragPayload = { word: b.textContent.trim(), from:"blank", fromIndex: parseInt(b.getAttribute("data-index")) };
+    e.dataTransfer.setData("text/plain", dragPayload.word);
+  }
+});
+
+/* ====== VALIDATION / CONTROLS ====== */
+function validate(){
+  const msg = qs("#message");
+  const allFilled = state.placements.every(Boolean);
+  if(!allFilled){
+    msg.className = "msg bad";
+    msg.textContent = "Fill all blanks before checking.";
+    return;
+  }
+  const correct = state.placements.every((w,i)=> w === state.correctWords[i]);
+  if(correct){
+    msg.className = "msg ok";
+    msg.textContent = "✅ Correct! Nice work.";
+  } else {
+    msg.className = "msg bad";
+    msg.textContent = "❌ Not quite. Try rearranging.";
+  }
+}
+
+function resetUI(){
+  state.placements = Array(state.blanksCount).fill(null);
+  document.querySelectorAll(".blank").forEach(b=>{ b.classList.remove("filled"); b.textContent=""; });
+  // rebuild bank with original shuffled tokens
+  renderBank(state.tokens);
+  qs("#message").textContent = "";
+}
+
+/* ====== DATA LOAD ====== */
+function pickRowForDate(rows, ymd){
+  // allow override via ?date=YYYY-MM-DD for testing
+  const url = new URL(location.href);
+  const override = url.searchParams.get("date");
+  const target = override || ymd;
+  return rows.find(r => (r[SHEET_DATE_FIELD]||"").trim() === target);
+}
+
+async function loadData(){
+  const todayYMD = toYMDInTimeZone("Europe/London");
+  qs("#dateLabel").textContent = todayYMD;
+
+  const csvText = await fetch(CSV_URL, { cache:"no-store" }).then(r=>r.text());
+  const parsed = Papa.parse(csvText, { header:true, skipEmptyLines:true });
+  const rows = parsed.data;
+
+  const row = pickRowForDate(rows, todayYMD);
+  if(!row || (row[SHEET_TYPE_FIELD]||"").trim() !== EXPECTED_TYPE){
+    qs("#questionArea").classList.add("hidden");
+    qs("#emptyState").classList.remove("hidden");
+    return;
+  }
+
+  const question = (row[SHEET_QUESTION_FIELD]||"").trim();
+  const correctWords = splitCSVList(row[SHEET_CORRECT_FIELD]);
+  const distractors = splitCSVList(row[SHEET_DISTRACT_FIELD]);
+  const blanksCount = (question.match(/\[blank\]/g)||[]).length;
+
+  // sanity checks
+  if(blanksCount !== correctWords.length){
+    qs("#sentence").textContent = "Config error: number of [blank] tokens must match correct_words count.";
+    return;
+  }
+
+  // build tokens: correct + as many distractors as needed to reach TOTAL_OPTIONS (or all if fewer/greater)
+  let tokens = [...correctWords];
+  const needed = Math.max(0, TOTAL_OPTIONS - tokens.length);
+  tokens.push(...distractors.slice(0, needed));
+  // if still fewer than 2 distractors available, just keep what we have
+  tokens = shuffle(tokens);
+
+  // set state
+  state.correctWords = correctWords;
+  state.blanksCount = blanksCount;
+  state.placements = Array(blanksCount).fill(null);
+  state.tokens = tokens;
+
+  // render
+  renderSentence(question, blanksCount);
+  renderBank(tokens);
+}
+
+/* ====== INIT ====== */
+document.getElementById("checkBtn").addEventListener("click", validate);
+document.getElementById("resetBtn").addEventListener("click", resetUI);
+loadData();
+</script>
+</body>
+</html>
