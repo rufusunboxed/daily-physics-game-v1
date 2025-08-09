@@ -30,6 +30,8 @@
 
   /* In-game */
   #game{padding:30px;display:none;position:relative}
+  /* Top bar wrapper so mobile can reserve space for streak */
+  #topBar{position:relative;min-height:24px} /* grows on mobile via media query */
   .dateLeft{font-size:12px}
   .sentence{font-size:18px;text-align:left;margin-top:20px;line-height:32px}
 
@@ -79,12 +81,15 @@
   .btnLink:hover{background:#f7f7f7}
   .hidden{display:none}
 
-  /* Streak pill (top-right) */
+  /* Streak pill */
   .streak{
     display:flex;align-items:center;gap:10px;
     background:#fff;border:0;border-radius:999px;padding:6px 10px;height:auto;
-    opacity:0; /* shown programmatically */
+    opacity:0;visibility:hidden; /* default hidden but can reserve space on mobile */
+    transition:opacity .25s ease;
   }
+  .streak.show{opacity:1;visibility:visible}
+  /* Desktop: absolute top-right inside game */
   .streakTop{position:absolute;top:30px;right:30px}
   .streakLabel{font-size:12px}
   .dots{display:flex;gap:8px}
@@ -123,15 +128,8 @@
   }
 
   @media (max-width:820px){.wrap{padding:12px}#game{padding:22px}.previewBox{width:calc(100% - 48px)}.sentence{font-size:17px}.blank{min-width:96px}}
-  @media (max-width:700px){
-    /* MCQ: stacked, centered full-width chips */
-    .bank.mcq{display:flex;flex-direction:column;align-items:center}
-    .bank.mcq .slot{width:100%}
-    .bank.mcq .chip{
-      display:block; width:100%; max-width:100%; white-space:normal; overflow-wrap:anywhere;
-      text-align:left; padding:10px 12px; line-height:1.4; height:auto;
-    }
-  }
+
+  /* Mobile layout: center date; streak below date; reserve space to prevent jump */
   @media (max-width:560px){
     body{font-size:18px}
     #preplay{padding-bottom:30px;min-height:220px}
@@ -139,12 +137,21 @@
     .previewBox{font-size:16px}
     .sentence{font-size:16px;line-height:30px}
     .blank{height:30px;line-height:30px;padding:0 10px;min-width:88px}
+
+    #topBar{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:64px}
+    .dateLeft{width:100%;text-align:center}
+    /* On mobile the streak is not absolute; it reserves space even when hidden */
+    .streakTop{position:static;right:auto;top:auto}
+    .streak{opacity:0;visibility:hidden} /* hidden but keeps flow */
+    .streak.show{opacity:1;visibility:visible}
+
     .answerSlot{display:block;max-width:100%;width:100%}
     .bank{gap:8px}
     .chip{min-width:72px;font-size:11px;line-height:24px;height:24px;padding:0 8px}
     .controls{gap:12px}
     .btn,.btnCheck,.btnGreat,.btnLink{width:100%}
   }
+
   @media (max-width:360px){.sentence{font-size:15px}.blank{min-width:80px}}
 </style>
 </head>
@@ -159,12 +166,15 @@
       </section>
 
       <section id="game">
-        <div class="dateLeft" id="dateLeft">—</div>
+        <!-- Top bar holds date and streak -->
+        <div id="topBar">
+          <div class="dateLeft" id="dateLeft">—</div>
 
-        <!-- Top-right streak pill -->
-        <div class="streak streakTop hidden" id="streakBox" aria-live="polite">
-          <span class="streakLabel">Your last 7 days:</span>
-          <div class="dots" id="streakDots"></div>
+          <!-- Streak pill: absolute on desktop; stacked under date on mobile -->
+          <div class="streak streakTop" id="streakBox" aria-live="polite">
+            <span class="streakLabel">Your last 7 days:</span>
+            <div class="dots" id="streakDots"></div>
+          </div>
         </div>
 
         <div class="sentence" id="sentence"></div>
@@ -450,8 +460,7 @@ function renderStreak(todayYMD){
     const dot=document.createElement("span"); dot.className="dot"+(map[ymd]?" on":""); dot.title=ymd;
     dotsEl.appendChild(dot);
   }
-  box.classList.remove("hidden");
-  box.style.opacity=1;
+  box.classList.add("show"); // visible (desktop & mobile). On mobile it occupies space already.
 }
 
 /* Reset */
@@ -472,8 +481,7 @@ function resetGame(){
   a.style.opacity=0; a.style.transform="translateX(12px)";
 
   const streak=$("#streakBox");
-  streak.classList.add("hidden");
-  streak.style.opacity=0;
+  streak.classList.remove("show");
 
   if(S.mode===TYPES.FILL){
     S.placements=Array(S.blanks).fill(null);
