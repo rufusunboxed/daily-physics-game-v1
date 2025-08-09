@@ -3,253 +3,422 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Daily Physics Fill-in-the-Blanks</title>
-<!-- PapaParse for robust CSV parsing -->
+<title>A-Level Physics • Daily Question</title>
+
+<!-- PapaParse for CSV parsing -->
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
 <style>
-  :root { --bg:#f7f7fb; --card:#ffffff; --ink:#222; --muted:#666; --ok:#16a34a; --bad:#dc2626; --accent:#2563eb; }
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
-  .wrap{max-width:900px;margin:32px auto;padding:16px;}
-  .card{background:var(--card);border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:20px;}
-  header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;}
-  h1{font-size:20px;margin:0;}
-  .date{color:var(--muted);font-size:14px}
-  .sentence{font-size:20px;line-height:1.6;margin:12px 0 20px;}
-  .blank{display:inline-flex;min-width:120px;min-height:42px;padding:8px 10px;margin:0 4px;border:2px dashed #cbd5e1;border-radius:12px;vertical-align:middle;align-items:center;justify-content:center;background:#f1f5f9;transition:.15s;}
-  .blank.filled{border-style:solid;background:#eef2ff;border-color:#93c5fd}
-  .bank{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;}
-  .chip{user-select:none;cursor:grab;background:#e2e8f0;border:1px solid #cbd5e1;border-radius:999px;padding:8px 12px;display:inline-flex;align-items:center;min-height:36px}
-  .chip:active{cursor:grabbing}
-  .controls{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
-  button{appearance:none;border:0;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff}
-  button.secondary{background:#e5e7eb;color:#111}
-  .msg{margin-top:12px;font-weight:600}
-  .msg.ok{color:var(--ok)} .msg.bad{color:var(--bad)}
-  .note{color:var(--muted);font-size:12px;margin-top:8px}
-  .hidden{display:none}
+  /* ===== THEME / DESIGN (your specs) ===== */
+  :root{
+    --green:#009901;
+    --light:#F0F0F0;
+    --red:#FF0000;
+    --ink:#111;
+    --muted:#666;
+    --chip:#fff;
+    --accent:#111; /* button text on light backgrounds */
+  }
+
+  /* Base */
+  html,body{margin:0;padding:0;background:#fff;color:var(--ink);}
+  body{
+    font-family:"Century Gothic","Apple Gothic","Segoe UI",Arial,sans-serif;
+    font-size:20px; line-height:1.5;
+  }
+
+  /* Canvas */
+  .wrap{max-width:940px;margin:24px auto;padding:0 8px;}
+  .card{
+    background:var(--light);
+    border-radius:20px;
+    padding:24px;
+    box-sizing:border-box;
+    text-align:center; /* center everything by default */
+  }
+
+  /* Headings */
+  .heading{
+    font-weight:700; /* Century Gothic Bold */
+    font-size:24px;
+    margin:0 0 6px 0;
+  }
+  .subdate{
+    font-size:14px; /* “super small piece of text” */
+    color:var(--muted);
+    margin-bottom:18px;
+  }
+
+  /* Question */
+  .sentence{
+    font-size:20px;
+    margin:14px auto 18px auto;
+  }
+  .blank{
+    display:inline-flex;
+    min-width:120px;
+    min-height:44px;
+    padding:8px 12px;
+    margin:0 4px;
+    border-radius:5px;
+    background:#e8e8e8;
+    border:2px dashed #cfcfcf;
+    vertical-align:middle; align-items:center; justify-content:center;
+    transition:background .15s, border-color .15s, transform .15s;
+  }
+  .blank.filled{ border-style:solid; background:#fff; border-color:#bbb; }
+  .blank.correct{ background:var(--green); border-color:var(--green); color:#fff; }
+  .blank.incorrect{ background:var(--red); border-color:var(--red); color:#fff; }
+
+  /* Answer bank */
+  .bankWrap{margin-top:18px;}
+  .bank{
+    display:flex; flex-wrap:wrap; gap:10px; justify-content:center;
+    padding:8px 0;
+  }
+  .chip{
+    user-select:none; cursor:grab;
+    background:var(--chip);
+    border:1px solid #ccc;
+    border-radius:5px;
+    padding:10px 14px;
+    min-height:44px; display:inline-flex; align-items:center;
+    transition:transform .1s;
+  }
+  .chip:active{ cursor:grabbing; transform:scale(.98); }
+
+  /* Controls */
+  .controls{display:flex; gap:10px; justify-content:center; margin-top:14px; flex-wrap:wrap;}
+  button{
+    appearance:none; border:0; border-radius:5px;
+    padding:10px 16px; font-weight:700; font-size:18px;
+    cursor:pointer; background:#fff; color:var(--accent); border:1px solid #bbb;
+  }
+  .btnPrimary{ background:#111; color:#fff; }
+  .btnGhost{ background:#fff; color:#111; }
+
+  .note{color:var(--muted); font-size:12px; margin-top:10px;}
+  .hidden{display:none;}
+
+  /* Simple “answers slide up” animation post-Play */
+  .slideUp{ animation:slideUp .35s ease-out; }
+  @keyframes slideUp{ from{ transform:translateY(16px); opacity:0;} to{ transform:translateY(0); opacity:1;} }
+
+  /* Confetti success (tiny, lightweight) */
+  .confetti{
+    position:fixed; left:50%; top:20%;
+    width:6px; height:10px; background:var(--green);
+    border-radius:1px; opacity:0.9;
+    animation:fall 900ms ease-out forwards;
+  }
+  @keyframes fall{
+    0%{ transform:translate(-50%,0) rotate(0deg); opacity:1;}
+    100%{ transform:translate(calc(-50% + var(--dx)), 120px) rotate(260deg); opacity:0;}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="card">
-    <header>
-      <h1>Daily Physics • Fill the Blanks</h1>
-      <div class="date" id="dateLabel"></div>
-    </header>
-    <div id="questionArea">
-      <div class="sentence" id="sentence">Loading…</div>
-      <div class="bank" id="bank"></div>
-      <div class="controls">
-        <button id="checkBtn">Check</button>
-        <button class="secondary" id="resetBtn">Reset</button>
+  <div class="wrap">
+    <div class="card">
+      <!-- Pre-play header -->
+      <div id="preplay">
+        <div class="heading">Today’s question</div>
+        <div class="subdate" id="dateHuman">Loading…</div>
+        <div class="sentence" id="qPreview">Loading question…</div>
+        <div class="controls">
+          <button class="btnPrimary" id="playBtn">Play</button>
+        </div>
       </div>
-      <div class="msg" id="message"></div>
-      <div class="note">Tip: drag a word out of a blank to return it to the bank.</div>
+
+      <!-- Game area -->
+      <div id="game" class="hidden">
+        <div class="sentence" id="sentence"></div>
+
+        <div class="bankWrap slideUp" id="bankWrap">
+          <div class="bank" id="bank"></div>
+          <div class="note">Tip: drag a word out of the sentence to return it to the shelf.</div>
+        </div>
+
+        <div class="controls">
+          <button class="btnGhost" id="resetBtn">Reset</button>
+          <button class="btnPrimary" id="checkBtn">Check</button>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div id="emptyState" class="hidden">No question found for today.</div>
     </div>
-    <div id="emptyState" class="hidden">No question found for this date.</div>
   </div>
-</div>
 
 <script>
-/* ====== CONFIG ====== */
+/* ===== CONFIG ===== */
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJlHGcShI4Ek9XrNBx_-xD7CT7uS2K2lhmzr1WU6z48u0xNcncL0RGfYFSzzPkTUZ-yurB7L0x7Szk/pub?gid=0&single=true&output=csv";
-const SHEET_DATE_FIELD = "date";
-const SHEET_TYPE_FIELD = "type";          // expect "fill_blank"
-const SHEET_QUESTION_FIELD = "question";  // contains [blank] tokens
-const SHEET_CORRECT_FIELD = "correct_words"; // comma-separated, order matters
-const SHEET_DISTRACT_FIELD = "distractors";  // comma-separated
+const FIELDS = {
+  date:"date",
+  type:"type",
+  question:"question",
+  correct:"correct_words",
+  distractors:"distractors"
+};
 const EXPECTED_TYPE = "fill_blank";
-const TOTAL_OPTIONS = 5; // target number of chips
+const TOTAL_OPTIONS = 5;
 
-/* ====== UTILITIES ====== */
-function toYMDInTimeZone(tz = "Europe/London", date = new Date()) {
-  const [y,m,d] = new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date)
-    .filter(p => p.type !== 'literal').map(p=>p.value);
-  return `${y}-${m}-${d}`;
-}
-function shuffle(arr){ for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
-function splitCSVList(s){ if(!s) return []; return s.split(",").map(x=>x.trim()).filter(Boolean); }
-function qs(sel){ return document.querySelector(sel); }
-
+/* ===== STATE ===== */
 const state = {
-  correctWords: [],
-  blanksCount: 0,
-  placements: [], // index -> word or null
-  tokens: []      // pool words
+  question:"",
+  correctWords:[],
+  distractors:[],
+  blanksCount:0,
+  placements:[],
+  tokens:[]
 };
 
-/* ====== RENDERING ====== */
-function renderSentence(raw, blanksCount){
-  const container = qs("#sentence");
-  container.innerHTML = "";
-  let remaining = blanksCount;
+/* ===== UTILITIES ===== */
+function toYMDInTZ(tz="Europe/London", d=new Date()){
+  const [y,m,day] = new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'})
+    .formatToParts(d).filter(p=>p.type!=="literal").map(p=>p.value);
+  return `${y}-${m}-${day}`;
+}
+function ordinal(n){
+  const s=["th","st","nd","rd"], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]);
+}
+function humanDate(tz="Europe/London", d=new Date()){
+  const fmt = new Intl.DateTimeFormat('en-GB',{timeZone:tz,day:'numeric',month:'long',year:'numeric'});
+  const parts = fmt.formatToParts(d);
+  const day = +parts.find(p=>p.type==='day').value;
+  const month = parts.find(p=>p.type==='month').value;
+  const year = parts.find(p=>p.type==='year').value;
+  return `${ordinal(day)} of ${month} ${year}`;
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function splitList(s){ return (s||"").split(",").map(x=>x.trim()).filter(Boolean); }
+function $(sel){ return document.querySelector(sel); }
+
+/* ===== RENDERING ===== */
+function renderSentence(raw){
+  const sentence = $("#sentence");
+  sentence.innerHTML = "";
   const parts = raw.split("[blank]");
   parts.forEach((part,i)=>{
-    container.append(document.createTextNode(part));
+    sentence.append(document.createTextNode(part));
     if(i < parts.length-1){
+      const idx = i;
       const b = document.createElement("span");
       b.className = "blank";
-      b.setAttribute("data-index", (state.blanksCount - remaining).toString());
-      b.setAttribute("droppable","true");
-      b.addEventListener("dragover", onDragOverBlank);
-      b.addEventListener("drop", onDropOnBlank);
-      b.addEventListener("dragenter", e=>e.preventDefault());
-      b.addEventListener("click", () => { // remove placed chip on click
-        const idx = parseInt(b.getAttribute("data-index"));
-        if(state.placements[idx]){
-          addChipToBank(state.placements[idx]);
-          state.placements[idx] = null;
-          b.classList.remove("filled");
-          b.textContent = "";
-        }
-      });
-      container.append(b);
-      remaining--;
+      b.dataset.index = idx.toString();
+      enableBlankDnD(b);
+      sentence.append(b);
     }
   });
 }
-
+function renderPreview(raw){
+  $("#qPreview").textContent = raw.replace(/\[blank\]/g, "____");
+}
 function renderBank(tokens){
-  const bank = qs("#bank");
+  const bank = $("#bank");
   bank.innerHTML = "";
   tokens.forEach(w => addChipToBank(w));
 }
 
+/* ===== DnD ===== */
+let dragPayload = null;
+
 function addChipToBank(word){
-  const bank = qs("#bank");
   const chip = document.createElement("span");
   chip.className = "chip";
   chip.textContent = word;
-  chip.setAttribute("draggable","true");
-  chip.addEventListener("dragstart", onDragStartChip);
-  bank.append(chip);
+  chip.draggable = true;
+  chip.addEventListener("dragstart", e=>{
+    dragPayload = { word, from:"bank", node: chip };
+    e.dataTransfer.setData("text/plain", word);
+  });
+  $("#bank").append(chip);
 }
 
-/* ====== DnD ====== */
-let dragPayload = null;
-function onDragStartChip(e){
-  dragPayload = { word: e.target.textContent, from: "bank", node: e.target };
-  e.dataTransfer.setData("text/plain", dragPayload.word);
+function enableBlankDnD(blankEl){
+  blankEl.addEventListener("dragover", e=>e.preventDefault());
+  blankEl.addEventListener("dragenter", e=>e.preventDefault());
+  blankEl.addEventListener("drop", e=>{
+    e.preventDefault();
+    const idx = +blankEl.dataset.index;
+
+    // if already filled, return old word to bank
+    if(state.placements[idx]){
+      addChipToBank(state.placements[idx]);
+    }
+
+    const word = (e.dataTransfer.getData("text/plain")||"").trim();
+
+    if(dragPayload){
+      if(dragPayload.from === "bank"){
+        dragPayload.node.remove();
+      }
+      if(dragPayload.from === "blank"){
+        const fromIdx = dragPayload.fromIndex;
+        if(fromIdx !== idx){
+          state.placements[fromIdx] = null;
+          const fromNode = document.querySelector(`.blank[data-index="${fromIdx}"]`);
+          fromNode.classList.remove("filled","correct","incorrect");
+          fromNode.textContent = "";
+        }
+      }
+    }
+
+    state.placements[idx] = word;
+    blankEl.textContent = word;
+    blankEl.classList.add("filled");
+    blankEl.classList.remove("correct","incorrect");
+    dragPayload = null;
+  });
+
+  // allow dragging a filled blank
+  blankEl.addEventListener("dragstart", e=>{
+    if(blankEl.textContent.trim()){
+      dragPayload = { word: blankEl.textContent.trim(), from:"blank", fromIndex:+blankEl.dataset.index };
+      e.dataTransfer.setData("text/plain", dragPayload.word);
+    }
+  });
+  blankEl.setAttribute("draggable","true"); // so user can drag out to bank
 }
-function onDragOverBlank(e){ e.preventDefault(); }
-function onDropOnBlank(e){
+
+/* Drop onto bank to return chip from a blank */
+$("#bank").addEventListener("dragover", e=>e.preventDefault());
+$("#bank").addEventListener("drop", e=>{
   e.preventDefault();
-  const target = e.currentTarget;
-  const idx = parseInt(target.getAttribute("data-index"));
-  // if blank already filled, return existing word to bank
-  if(state.placements[idx]){
-    addChipToBank(state.placements[idx]);
-  }
-  let word = e.dataTransfer.getData("text/plain");
-  // if dropping from another blank, we need to remove from there
-  if(dragPayload && dragPayload.from === "blank"){
+  if(dragPayload && dragPayload.from==="blank"){
     const fromIdx = dragPayload.fromIndex;
+    const word = dragPayload.word;
+    addChipToBank(word);
     state.placements[fromIdx] = null;
-    document.querySelector(`.blank[data-index="${fromIdx}"]`).classList.remove("filled");
-    document.querySelector(`.blank[data-index="${fromIdx}"]`).textContent = "";
-  } else if(dragPayload && dragPayload.from === "bank"){
-    // remove the chip from bank
-    dragPayload.node.remove();
-  }
-  state.placements[idx] = word;
-  target.classList.add("filled");
-  target.textContent = word;
-  dragPayload = null;
-}
-
-// enable dragging from a filled blank back to another blank/bank
-document.addEventListener("dragstart", (e)=>{
-  const b = e.target.closest(".blank");
-  if(b && b.textContent.trim()){
-    dragPayload = { word: b.textContent.trim(), from:"blank", fromIndex: parseInt(b.getAttribute("data-index")) };
-    e.dataTransfer.setData("text/plain", dragPayload.word);
+    const fromNode = document.querySelector(`.blank[data-index="${fromIdx}"]`);
+    fromNode.classList.remove("filled","correct","incorrect");
+    fromNode.textContent = "";
+    dragPayload = null;
   }
 });
 
-/* ====== VALIDATION / CONTROLS ====== */
-function validate(){
-  const msg = qs("#message");
-  const allFilled = state.placements.every(Boolean);
-  if(!allFilled){
-    msg.className = "msg bad";
-    msg.textContent = "Fill all blanks before checking.";
-    return;
+/* Click a filled blank to return to shelf (extra convenience) */
+document.addEventListener("click", e=>{
+  const b = e.target.closest(".blank");
+  if(!b) return;
+  const idx = +b.dataset.index;
+  if(state.placements[idx]){
+    addChipToBank(state.placements[idx]);
+    state.placements[idx] = null;
+    b.classList.remove("filled","correct","incorrect");
+    b.textContent = "";
   }
-  const correct = state.placements.every((w,i)=> w === state.correctWords[i]);
-  if(correct){
-    msg.className = "msg ok";
-    msg.textContent = "✅ Correct! Nice work.";
-  } else {
-    msg.className = "msg bad";
-    msg.textContent = "❌ Not quite. Try rearranging.";
-  }
-}
+});
 
+/* ===== CONTROLS ===== */
 function resetUI(){
+  // Clear placements + classes
   state.placements = Array(state.blanksCount).fill(null);
-  document.querySelectorAll(".blank").forEach(b=>{ b.classList.remove("filled"); b.textContent=""; });
-  // rebuild bank with original shuffled tokens
+  document.querySelectorAll(".blank").forEach(b=>{
+    b.classList.remove("filled","correct","incorrect");
+    b.textContent = "";
+  });
+  // Rebuild bank with original tokens
   renderBank(state.tokens);
-  qs("#message").textContent = "";
 }
 
-/* ====== DATA LOAD ====== */
-function pickRowForDate(rows, ymd){
-  // allow override via ?date=YYYY-MM-DD for testing
+function checkAnswers(){
+  let allCorrect = true;
+  document.querySelectorAll(".blank").forEach((b, i)=>{
+    const placed = state.placements[i];
+    const correct = state.correctWords[i];
+    b.classList.remove("correct","incorrect");
+    if(placed){
+      if(placed === correct){
+        b.classList.add("correct");
+      } else {
+        b.classList.add("incorrect");
+        allCorrect = false;
+      }
+    } else {
+      allCorrect = false;
+    }
+  });
+
+  if(allCorrect){
+    celebrate();
+  }
+}
+
+/* Tiny confetti burst */
+function celebrate(){
+  for(let i=0;i<18;i++){
+    const c = document.createElement("div");
+    c.className = "confetti";
+    c.style.setProperty("--dx", `${(Math.random()*240-120).toFixed(0)}px`);
+    c.style.background = Math.random()>.5 ? "white" : "var(--green)";
+    c.style.transform = `translate(-50%,0) rotate(${Math.random()*360|0}deg)`;
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(), 1000);
+  }
+}
+
+/* ===== DATA LOAD ===== */
+function chooseRow(rows, ymd){
   const url = new URL(location.href);
   const override = url.searchParams.get("date");
-  const target = override || ymd;
-  return rows.find(r => (r[SHEET_DATE_FIELD]||"").trim() === target);
+  const key = override || ymd;
+  return rows.find(r => (r[FIELDS.date]||"").trim() === key);
 }
 
-async function loadData(){
-  const todayYMD = toYMDInTimeZone("Europe/London");
-  qs("#dateLabel").textContent = todayYMD;
+async function init(){
+  const todayYMD = toYMDInTZ("Europe/London");
+  $("#dateHuman").textContent = humanDate("Europe/London");
 
-  const csvText = await fetch(CSV_URL, { cache:"no-store" }).then(r=>r.text());
-  const parsed = Papa.parse(csvText, { header:true, skipEmptyLines:true });
+  const csvText = await fetch(CSV_URL, {cache:"no-store"}).then(r=>r.text());
+  const parsed = Papa.parse(csvText, {header:true, skipEmptyLines:true});
   const rows = parsed.data;
 
-  const row = pickRowForDate(rows, todayYMD);
-  if(!row || (row[SHEET_TYPE_FIELD]||"").trim() !== EXPECTED_TYPE){
-    qs("#questionArea").classList.add("hidden");
-    qs("#emptyState").classList.remove("hidden");
+  const row = chooseRow(rows, todayYMD);
+  if(!row || (row[FIELDS.type]||"").trim() !== EXPECTED_TYPE){
+    $("#preplay").classList.add("hidden");
+    $("#game").classList.add("hidden");
+    $("#emptyState").classList.remove("hidden");
     return;
   }
 
-  const question = (row[SHEET_QUESTION_FIELD]||"").trim();
-  const correctWords = splitCSVList(row[SHEET_CORRECT_FIELD]);
-  const distractors = splitCSVList(row[SHEET_DISTRACT_FIELD]);
-  const blanksCount = (question.match(/\[blank\]/g)||[]).length;
+  state.question = (row[FIELDS.question]||"").trim();
+  state.correctWords = splitList(row[FIELDS.correct]);
+  state.distractors = splitList(row[FIELDS.distractors]);
+  state.blanksCount = (state.question.match(/\[blank\]/g)||[]).length;
 
-  // sanity checks
-  if(blanksCount !== correctWords.length){
-    qs("#sentence").textContent = "Config error: number of [blank] tokens must match correct_words count.";
+  if(state.blanksCount !== state.correctWords.length){
+    $("#preplay").classList.add("hidden");
+    $("#emptyState").classList.remove("hidden");
+    $("#emptyState").textContent = "Config error: [blank] count must equal number of correct words.";
     return;
   }
 
-  // build tokens: correct + as many distractors as needed to reach TOTAL_OPTIONS (or all if fewer/greater)
-  let tokens = [...correctWords];
-  const needed = Math.max(0, TOTAL_OPTIONS - tokens.length);
-  tokens.push(...distractors.slice(0, needed));
-  // if still fewer than 2 distractors available, just keep what we have
-  tokens = shuffle(tokens);
+  // Build tokens to total of 5
+  state.tokens = [...state.correctWords];
+  const need = Math.max(0, TOTAL_OPTIONS - state.tokens.length);
+  state.tokens.push(...state.distractors.slice(0, need));
+  state.tokens = shuffle(state.tokens);
 
-  // set state
-  state.correctWords = correctWords;
-  state.blanksCount = blanksCount;
-  state.placements = Array(blanksCount).fill(null);
-  state.tokens = tokens;
+  // Pre-play preview
+  renderPreview(state.question);
 
-  // render
-  renderSentence(question, blanksCount);
-  renderBank(tokens);
+  // Wire buttons
+  $("#playBtn").onclick = ()=>{
+    $("#preplay").classList.add("hidden");
+    $("#game").classList.remove("hidden");
+    // Render the game
+    renderSentence(state.question);
+    state.placements = Array(state.blanksCount).fill(null);
+    renderBank(state.tokens);
+    // small slideUp already on bankWrap via class
+  };
+  $("#resetBtn").onclick = resetUI;
+  $("#checkBtn").onclick = checkAnswers;
 }
 
-/* ====== INIT ====== */
-document.getElementById("checkBtn").addEventListener("click", validate);
-document.getElementById("resetBtn").addEventListener("click", resetUI);
-loadData();
+/* GO */
+init();
 </script>
 </body>
 </html>
