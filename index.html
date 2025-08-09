@@ -7,109 +7,172 @@
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <style>
   :root{
-    --green:#009901; --red:#FF0000; --light:#F0F0F0; --orange:#FF9700; --ink:#111;
+    --green:#009901;
+    --red:#FF0000;
+    --light:#F0F0F0;
+    --orange:#FF9700;
+    --ink:#111;
+    --chip-min:84px; /* synced with JS config */
   }
   html,body{margin:0;background:#fff;color:var(--ink)}
   body{font-family:"Century Gothic","Apple Gothic","Segoe UI",Arial,sans-serif;font-size:20px;line-height:1.5}
-  .wrap{max-width:940px;margin:0 auto;padding:24px 0;display:flex;justify-content:center}
-  .card{width:100%;max-width:760px;background:var(--light);border:2px solid var(--orange);border-radius:20px;box-sizing:border-box}
+
+  /* Outer container is fluid; card clamps to 760 on desktop */
+  .wrap{max-width:940px;margin:0 auto;padding:16px;display:flex;justify-content:center}
+  .card{
+    width:100%; max-width:760px;
+    background:var(--light); border:2px solid var(--orange); border-radius:20px; box-sizing:border-box
+  }
+
   /* Frame 1 */
-  #preplay{text-align:center;position:relative}
+  #preplay{height:260px;text-align:center;position:relative}
   .dateTop{font-size:12px;margin-top:30px;margin-bottom:5px}
   .title24{font-weight:700;font-size:24px;margin:0}
-  .previewBox{width:calc(100% - 80px);margin:30px auto 0;background:#fff;border-radius:20px;padding:20px;box-sizing:border-box;font-size:18px}
-  .btnPlay{width:87px;height:36px;margin:30px auto 30px auto;background:var(--orange);color:#000;border-radius:5px;border:0;cursor:pointer;font-weight:700;font-size:18px}
-  .btnPlay:hover{filter:brightness(0.95)}
+  .previewBox{
+    width:calc(100% - 80px); margin:30px auto 0; background:#fff; border-radius:20px; padding:20px;
+    box-sizing:border-box; font-size:18px
+  }
+  .btnPlay{
+    width:87px;height:36px;margin:30px auto 0;background:var(--orange);color:#000;border-radius:5px;border:0;cursor:pointer;
+    font-weight:700;font-size:18px;transition:filter .15s,transform .05s
+  }
+  .btnPlay:hover{filter:brightness(.95)} .btnPlay:active{transform:scale(.98)}
+
   /* In-game */
   #game{padding:30px;display:none}
   .dateLeft{font-size:12px}
-  .sentence{font-size:18px;text-align:left;margin-top:20px;line-height:1.8}
+  .sentence{font-size:18px;text-align:left;margin-top:20px;line-height:32px}
   .blank{
-    display:inline-flex;align-items:center;justify-content:center;
-    width:118px;height:32px;box-sizing:border-box;
-    border:1px solid var(--orange);border-radius:5px;background:#fff;
-    margin:0 4px 6px 4px;padding:0 8px;cursor:grab;vertical-align:middle;
+    display:inline-flex;vertical-align:middle; align-items:center;justify-content:center;
+    min-width:118px; height:32px; line-height:32px; box-sizing:border-box;
+    border:1px solid var(--orange); border-radius:5px; background:#fff;
+    margin:0 4px 6px 4px; padding:0 8px; cursor:grab; white-space:nowrap; overflow:hidden; text-overflow:ellipsis
   }
-  .blank.used{border-color:#000}
-  .blank.correct{border-color:var(--green);color:#000}
-  .blank.incorrect{border-color:var(--red);color:#000}
+  .blank.used{border-color:#000} .blank.correct{border-color:var(--green)} .blank.incorrect{border-color:var(--red)}
+
+  /* Shelf with fixed slots */
   .bank{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start;margin-top:20px}
+  .slot{display:inline-block;vertical-align:top}
   .chip{
-    min-width:84px;height:26px;padding:0 10px;box-sizing:border-box;
-    display:inline-flex;align-items:center;justify-content:center;
-    border:1px dashed #000;border-radius:5px;background:#fff;
-    cursor:grab;font-size:12px;line-height:12px;white-space:nowrap
+    min-width:var(--chip-min);height:26px;line-height:26px;padding:0 10px;box-sizing:border-box;
+    display:inline-block;text-align:center;border:1px dashed #000;border-radius:5px;background:#fff;cursor:grab;
+    font-size:12px;white-space:nowrap
   }
   .chip:hover{background:#f7f7f7}
-  .controls{display:flex;flex-wrap:wrap;gap:20px;justify-content:flex-start;margin-top:30px}
-  .btn{width:87px;height:32px;border-radius:5px;border:1px solid #000;background:#fff;color:#000;font-weight:700;font-size:18px;cursor:pointer}
-  .btn:hover{background:#f7f7f7}
+  .chipWrong{border-color:var(--red)}
+
+  .controls{display:flex;gap:20px;justify-content:flex-start;margin-top:30px;flex-wrap:wrap}
+  .btn{
+    width:87px;height:32px;border-radius:5px;border:1px solid #000;background:#fff;color:#000;font-weight:700;font-size:18px;
+    cursor:pointer;transition:filter .15s,background .15s,transform .05s
+  }
+  .btn:not(.btnGreat):hover{background:#f7f7f7}
+  .btn:not(.btnGreat):active{transform:scale(.98)}
   .btnCheck{background:var(--orange);border-color:var(--orange)}
-  .btnCheck:hover{filter:brightness(0.95)}
-  .btnGreat{width:131px;height:32px;background:var(--green);border-color:var(--green);color:#fff;font-weight:400;font-size:16px;cursor:default}
-  .btnLink{width:313px;height:32px;background:#fff;border:1px solid #000;border-radius:5px;color:#000;font-size:16px;font-weight:400;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;opacity:0;transform:translateX(12px)}
+  .btnCheck:hover{filter:brightness(.95)}
+  .btnGreat{width:131px;height:32px;background:var(--green);border-color:var(--green);color:#fff;font-weight:400;font-size:16px;pointer-events:none}
+  .btnLink{
+    width:313px;height:32px;background:#fff;border:1px solid #000;border-radius:5px;color:#000;font-size:16px;font-weight:400;
+    text-decoration:none;display:inline-flex;align-items:center;justify-content:center;opacity:0;transform:translateX(12px)
+  }
   .btnLink:hover{background:#f7f7f7}
   .hidden{display:none}
 
   /* Animations */
   @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
   @keyframes slideOutRight{to{transform:translateX(24px);opacity:0}}
-  @keyframes slideInRight{to{transform:translateX(0);opacity:1}}
+  @keyframes slideInRight{from{transform:translateX(12px);opacity:0}to{transform:translateX(0);opacity:1}}
   .pulse{animation:pulse .6s ease-in-out 2}
   .slideOutRight{animation:slideOutRight .35s ease-out forwards}
-  .slideInRightStart{opacity:0;transform:translateX(12px)}
   .slideInRight{animation:slideInRight .35s ease-out forwards}
 
   /* Confetti */
   .confetti{position:fixed;left:50%;top:20%;width:6px;height:10px;background:var(--green);border-radius:1px;opacity:.9;animation:fall .9s ease-out forwards}
   @keyframes fall{from{transform:translate(-50%,0) rotate(0)}to{transform:translate(calc(-50% + var(--dx)),120px) rotate(260deg);opacity:0}}
 
-  @media(max-width:800px){
-    .card{max-width:95%}
-    .previewBox{width:calc(100% - 40px)}
-    .btnLink{width:100%}
+  /* ====== Responsive ====== */
+  @media (max-width: 820px){
+    .wrap{padding:12px}
+    #game{padding:22px}
+    .previewBox{width:calc(100% - 48px)}
+    .sentence{font-size:17px}
+    .blank{min-width:96px}
+  }
+  @media (max-width: 560px){
+    body{font-size:18px}
+    #preplay{height:auto; padding-bottom:20px}
+    .title24{font-size:22px}
+    .previewBox{font-size:16px}
+    .sentence{font-size:16px; line-height:30px}
+    .blank{height:30px; line-height:30px; padding:0 10px; min-width:88px}
+    .bank{gap:8px}
+    .chip{min-width:72px; font-size:11px; line-height:24px; height:24px; padding:0 8px}
+    .controls{gap:12px}
+    .btn, .btnCheck, .btnGreat, .btnLink{width:100%}
+  }
+  @media (max-width: 360px){
+    .sentence{font-size:15px}
+    .blank{min-width:80px}
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="card">
-    <section id="preplay">
-      <div class="dateTop" id="dateTop">Loading…</div>
-      <h1 class="title24">Today’s Physics Game</h1>
-      <div class="previewBox" id="previewBox">Loading question…</div>
-      <button class="btnPlay" id="playBtn">Play</button>
-    </section>
+  <div class="wrap">
+    <div class="card">
+      <section id="preplay">
+        <div class="dateTop" id="dateTop">Loading…</div>
+        <h1 class="title24">Today’s Physics Game</h1>
+        <div class="previewBox" id="previewBox">Loading question…</div>
+        <button class="btnPlay" id="playBtn">Play</button>
+      </section>
 
-    <section id="game">
-      <div class="dateLeft" id="dateLeft">—</div>
-      <div class="sentence" id="sentence"></div>
-      <div class="bank" id="bank"></div>
-      <div class="controls">
-        <button class="btn" id="resetBtn">Reset</button>
-        <button class="btn btnCheck" id="checkBtn">Check</button>
-        <button class="btn btnGreat hidden" id="greatBtn">Great Job!</button>
-        <a class="btnLink slideInRightStart hidden" id="learnBtn" target="_blank" rel="noopener">Learn more about this topic here</a>
-      </div>
-    </section>
+      <section id="game">
+        <div class="dateLeft" id="dateLeft">—</div>
+        <div class="sentence" id="sentence"></div>
+        <div class="bank" id="bank"></div>
+        <div class="controls" id="controls">
+          <button class="btn" id="resetBtn">Reset</button>
+          <button class="btn btnCheck" id="checkBtn">Check</button>
+          <button class="btn btnGreat hidden" id="greatBtn">Great Job!</button>
+          <a class="btnLink hidden" id="learnBtn" target="_blank" rel="noopener">Learn more about this topic here</a>
+        </div>
+      </section>
 
-    <section id="empty" class="hidden" style="padding:30px;text-align:center">No question found for today.</section>
+      <section id="empty" class="hidden" style="padding:30px;text-align:center">No question found for today.</section>
+    </div>
   </div>
-</div>
 
 <script>
+/* ===== Config (shared with CSS via vars) ===== */
+const CONFIG = {
+  chipMinWidth: 84,
+  mobileDisableFixedSlotsAt: 560 // px: below this, we don't lock slot widths
+};
+
 const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vSJlHGcShI4Ek9XrNBx_-xD7CT7uS2K2lhmzr1WU6z48u0xNcncL0RGfYFSzzPkTUZ-yurB7L0x7Szk/pub?gid=0&single=true&output=csv";
-let S={q:"",correct:[],distr:[],blanks:0,placements:[],tokens:[],chipsMap:new Map(),link:""};
-let _drag=null;
+const F={date:"date",type:"type",q:"question",correct:"correct_words",distr:"distractors",link:"link"};
+const EXPECTED="fill_blank", TOTAL_OPTIONS=5;
 
-function $(q){return document.querySelector(q)}
+const S={q:"",correct:[],distr:[],blanks:0,placements:[],tokens:[],link:"",chipsMap:new Map(),slotIndexById:new Map(),slotText:[]};
+let chipSeq=0, _drag=null;
+
+/* ===== Utils ===== */
+function toYMD(tz="Europe/London",d=new Date()){
+  const p=new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d).filter(x=>x.type!=='literal').map(x=>x.value);
+  return `${p[0]}-${p[1]}-${p[2]}`;
+}
+function ordinal(n){const s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0])}
+function human(tz="Europe/London",d=new Date()){
+  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:tz,day:'numeric',month:'long',year:'numeric'}).formatToParts(d);
+  const day=+parts.find(p=>p.type==='day').value, mon=parts.find(p=>p.type==='month').value, y=parts.find(p=>p.type==='year').value;
+  return `${ordinal(day)} ${mon} ${y}`;
+}
 function splitList(s){return (s||"").split(",").map(x=>x.trim()).filter(Boolean)}
+function $(q){return document.querySelector(q)}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function toYMD(){const d=new Date(),p=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).format(d).split('-');return `${p[0]}-${p[1]}-${p[2]}`}
-function human(){const d=new Date(),parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',day:'numeric',month:'long',year:'numeric'}).formatToParts(d);const day=+parts.find(p=>p.type==='day').value;const mon=parts.find(p=>p.type==='month').value;const y=parts.find(p=>p.type==='year').value;const s=["th","st","nd","rd"],v=day%100;return `${day+(s[(v-20)%10]||s[v]||s[0])} ${mon} ${y}`}
+function renderPreview(){ $("#previewBox").textContent=S.q.replace(/\[blank\]/g,"______") }
 
-function renderPreview(){ $("#previewBox").textContent=S.q.replace(/\[blank\]/g,"______"); }
-
+/* ===== Sentence / Blanks ===== */
 function enableBlank(b){
   b.addEventListener("dragover",e=>e.preventDefault());
   b.addEventListener("drop",e=>{
@@ -118,19 +181,19 @@ function enableBlank(b){
     const id=e.dataTransfer.getData("text/id");
     const word=e.dataTransfer.getData("text/label");
     if(!id) return;
-    if(S.placements[idx]) returnChipToBank(S.placements[idx].id);
-    if(_drag && _drag.from==="blank"){S.placements[_drag.idx]=null;const el=document.querySelector(`.blank[data-index="${_drag.idx}"]`);el.textContent="";el.className="blank";}
-    if(_drag && _drag.from==="bank"){const node=S.chipsMap.get(id);if(node && node.parentElement) node.parentElement.removeChild(node);}
-    S.placements[idx]={id,word};
-    b.textContent=word; b.className="blank used"; _drag=null;
+    placeChipInBlank({id,word}, idx, true);
   });
   b.addEventListener("click",()=>{
-    if(b.textContent.trim()){ // send back to bank
-      const idx=+b.dataset.index;
-      returnChipToBank(S.placements[idx].id);
-      S.placements[idx]=null;
-      b.textContent=""; b.className="blank";
-    }
+    const idx=+b.dataset.index, placed=S.placements[idx];
+    if(!placed) return;
+    returnChipToBank(placed.id);
+    S.placements[idx]=null; b.textContent=""; b.className="blank";
+  });
+  b.addEventListener("dragstart",e=>{
+    if(!b.textContent.trim()) return;
+    const idx=+b.dataset.index, placed=S.placements[idx]; if(!placed) return;
+    _drag={from:"blank",idx,id:placed.id,word:placed.word};
+    e.dataTransfer.setData("text/id",placed.id); e.dataTransfer.setData("text/label",placed.word);
   });
   b.draggable=true;
 }
@@ -141,91 +204,205 @@ function renderSentence(){
   parts.forEach((t,i)=>{
     host.append(document.createTextNode(t));
     if(i<parts.length-1){
-      const sp=document.createElement("span");
-      sp.className="blank"; sp.dataset.index=i;
+      const sp=document.createElement("span"); sp.className="blank"; sp.dataset.index=i;
       enableBlank(sp); host.append(sp);
     }
   });
 }
 
-let chipSeq=0;
+/* ===== Shelf with fixed slots ===== */
+function measureChipWidth(text){
+  const tmp=document.createElement("span");
+  tmp.className="chip"; tmp.style.position="absolute"; tmp.style.visibility="hidden"; tmp.style.left="-9999px";
+  tmp.textContent=text; document.body.appendChild(tmp);
+  const w=tmp.offsetWidth; document.body.removeChild(tmp); return w;
+}
+
 function makeChip(word){
   const id=`c${++chipSeq}`;
   const chip=document.createElement("span");
   chip.className="chip"; chip.textContent=word; chip.draggable=true; chip.dataset.id=id;
   chip.addEventListener("dragstart",e=>{
     _drag={from:"bank",id,word,node:chip};
-    e.dataTransfer.setData("text/id", id);
-    e.dataTransfer.setData("text/label", word);
+    e.dataTransfer.setData("text/id",id); e.dataTransfer.setData("text/label",word);
   });
   chip.addEventListener("click",()=>{
-    const idx=S.placements.findIndex(p=>!p);
-    if(idx>-1){const blank=document.querySelector(`.blank[data-index="${idx}"]`);
-      if(blank){chip.parentElement.removeChild(chip);S.placements[idx]={id,word};blank.textContent=word;blank.className="blank used";}
+    const nextIdx=S.placements.findIndex(x=>!x);
+    if(nextIdx===-1) return;
+    placeChipInBlank({id,word}, nextIdx, false);
+  });
+  S.chipsMap.set(id,chip);
+  return {id,node:chip,word};
+}
+
+function renderBank(){
+  const bank=$("#bank"); bank.innerHTML="";
+  S.slotIndexById.clear(); S.slotText=[...S.tokens];
+  S.tokens.forEach((tok, i)=>{
+    const slot=document.createElement("div"); slot.className="slot"; slot.dataset.index=i;
+    const {id,node}=makeChip(tok);
+    slot.appendChild(node); bank.appendChild(slot);
+    S.slotIndexById.set(id, i);
+  });
+  setSlotWidths();
+}
+
+function setSlotWidths(){
+  const bank=$("#bank"); if(!bank) return;
+  const disable = window.innerWidth <= CONFIG.mobileDisableFixedSlotsAt;
+  const slots=[...bank.querySelectorAll(".slot")];
+  if(disable){
+    // Let mobile wrap naturally; clear fixed widths
+    slots.forEach(slot=>{ slot.style.width = ""; });
+    return;
+  }
+  // Desktop/tablet: lock slot widths to keep visual positions
+  slots.forEach((slot,i)=>{
+    const txt=S.slotText[i] ?? "";
+    const hasChip=slot.firstElementChild && slot.firstElementChild.classList.contains("chip");
+    const w = hasChip ? slot.firstElementChild.offsetWidth : measureChipWidth(txt);
+    slot.style.width = Math.max(CONFIG.chipMinWidth, w) + "px";
+  });
+}
+
+function addChipToBankById(id){
+  const slotIdx=S.slotIndexById.get(id);
+  const chip=S.chipsMap.get(id);
+  if(chip==null || slotIdx==null) return;
+  const slot=$("#bank").querySelector(`.slot[data-index="${slotIdx}"]`);
+  if(slot) slot.appendChild(chip);
+  setSlotWidths();
+}
+function returnChipToBank(id){ addChipToBankById(id); }
+
+function placeChipInBlank(item, idx, fromDrag){
+  if(S.placements[idx]) returnChipToBank(S.placements[idx].id);
+  if(_drag && _drag.from==="blank"){
+    const from=_drag.idx;
+    if(from!==idx){
+      S.placements[from]=null;
+      const el=document.querySelector(`.blank[data-index="${from}"]`);
+      el.textContent=""; el.className="blank";
     }
-  });
-  S.chipsMap.set(id, chip);
-  return chip;
+  }
+  if((_drag && _drag.from==="bank") || !fromDrag){
+    const node=S.chipsMap.get(item.id);
+    if(node && node.parentElement) node.parentElement.removeChild(node);
+  }
+  S.placements[idx]={id:item.id,word:item.word};
+  const target=document.querySelector(`.blank[data-index="${idx}"]`);
+  target.textContent=item.word; target.className="blank used"; _drag=null;
+  setSlotWidths();
 }
 
-function returnChipToBank(id){const chip=S.chipsMap.get(id);if(chip && !$("#bank").contains(chip)) $("#bank").append(chip);}
-function renderBank(){ $("#bank").innerHTML=""; S.tokens.forEach(tok=>$("#bank").append(makeChip(tok))); }
+/* Drop back onto shelf area */
+$("#bank").addEventListener("dragover",e=>e.preventDefault());
+$("#bank").addEventListener("drop",e=>{
+  e.preventDefault();
+  if(_drag && _drag.from==="blank"){
+    const from=_drag.idx; returnChipToBank(_drag.id); S.placements[from]=null;
+    const el=document.querySelector(`.blank[data-index="${from}"]`); el.textContent=""; el.className="blank"; _drag=null;
+  }
+});
 
-function checkAnswers(){
-  let allCorrect=true;
-  S.placements.forEach((p,i)=>{
-    const b=document.querySelector(`.blank[data-index="${i}"]`);
-    if(p && p.word===S.correct[i]){b.className="blank correct";}
-    else {b.className="blank incorrect";allCorrect=false;}
-  });
-  if(allCorrect) showSuccess();
-}
-
-function showSuccess(){
-  $("#checkBtn").classList.add("hidden");
-  $("#greatBtn").classList.remove("hidden");
-  $("#greatBtn").classList.add("pulse");
-  setTimeout(()=>{$("#learnBtn").classList.remove("hidden");$("#learnBtn").classList.add("slideInRight");$("#learnBtn").href=S.link||"#";},1000);
-  for(let i=0;i<20;i++){const c=document.createElement("div");c.className="confetti";c.style.setProperty("--dx",`${(Math.random()*200-100)}px`);c.style.background=Math.random()>.5?"var(--green)":"var(--orange)";document.body.append(c);setTimeout(()=>c.remove(),900);}
-}
-
+/* ===== Reset (single source of truth) ===== */
 function resetGame(){
-  $("#preplay").style.display="block";
-  $("#game").style.display="none";
+  // Frames
+  $("#preplay").style.display = "block";
+  $("#game").style.display = "none";
   $("#empty").classList.add("hidden");
+
+  // Buttons/links
   $("#checkBtn").classList.remove("hidden");
   $("#greatBtn").classList.add("hidden");
   $("#greatBtn").classList.remove("pulse");
-  $("#learnBtn").classList.add("hidden");
-  $("#learnBtn").classList.remove("slideInRight");
-  $("#learnBtn").style.opacity=0;
-  $("#learnBtn").style.transform="translateX(12px)";
+  const a=$("#learnBtn");
+  a.classList.add("hidden");
+  a.classList.remove("slideInRight");
+  a.style.opacity=0;
+  a.style.transform="translateX(12px)";
+
+  // State + visuals
+  S.placements=Array(S.blanks).fill(null);
+  document.querySelectorAll(".blank").forEach(b=>{ b.textContent=""; b.className="blank"; });
+  $("#bank").querySelectorAll(".chip").forEach(ch=>ch.classList.remove("chipWrong"));
+
+  // Preview refreshed (keeps frame-1 text tidy)
+  renderPreview();
 }
 
-$("#playBtn").onclick=()=>{
-  $("#preplay").style.display="none";
-  $("#game").style.display="block";
-  $("#dateLeft").textContent=human();
-  renderSentence(); renderBank();
-};
-
-$("#checkBtn").onclick=checkAnswers;
 $("#resetBtn").onclick=resetGame;
 
-Papa.parse(CSV_URL,{download:true,header:true,complete:(res)=>{
-  const today=toYMD();
-  const row=res.data.find(r=>r.date===today && r.type==="fill_blank");
-  if(!row){$("#empty").classList.remove("hidden");$("#preplay").style.display="none";return;}
-  S.q=row.question;
-  S.correct=splitList(row.correct_words);
-  S.distr=splitList(row.distractors);
-  S.tokens=shuffle([...S.correct,...S.distr]);
+/* ===== Success & Check ===== */
+function celebrate(){
+  for(let i=0;i<18;i++){
+    const c=document.createElement("div");
+    c.className="confetti";
+    c.style.setProperty("--dx",`${(Math.random()*240-120)|0}px`);
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),950);
+  }
+}
+
+$("#checkBtn").onclick=()=>{
+  let all=true;
+  document.querySelectorAll(".blank").forEach((b,i)=>{
+    const placed=S.placements[i], ok=placed && placed.word===S.correct[i];
+    b.classList.remove("used","correct","incorrect");
+    if(placed){ b.classList.add(ok?"correct":"incorrect"); b.textContent=placed.word; }
+    else all=false;
+    if(!ok) all=false;
+  });
+  if(all){
+    $("#checkBtn").classList.add("pulse"); celebrate();
+    setTimeout(()=>{
+      $("#checkBtn").classList.add("slideOutRight");
+      setTimeout(()=>{
+        $("#checkBtn").classList.add("hidden");
+        $("#greatBtn").classList.remove("hidden"); $("#greatBtn").classList.add("pulse");
+        if(S.link){
+          const a=$("#learnBtn"); a.href=S.link; a.classList.remove("hidden");
+          setTimeout(()=>{ a.classList.add("slideInRight"); a.style.opacity=1; }, 900);
+        }
+        $("#bank").querySelectorAll(".chip").forEach(ch=>ch.classList.add("chipWrong"));
+      },350);
+    },620);
+  }
+};
+
+$("#greatBtn").onclick=()=>{}; // no-op
+
+/* ===== Play & Init ===== */
+$("#playBtn").onclick=()=>{
+  $("#preplay").style.display="none"; $("#game").style.display="block";
+  $("#dateLeft").textContent=$("#dateTop").textContent;
+  renderSentence(); S.placements=Array(S.blanks).fill(null); renderBank(); setSlotWidths();
+};
+
+function choose(rows,ymd){const url=new URL(location.href);const o=url.searchParams.get("date")||ymd;return rows.find(r=>(r[F.date]||"").trim()===o)}
+
+(async function init(){
+  const today=toYMD("Europe/London"), humanStr=human("Europe/London");
+  $("#dateTop").textContent=humanStr; $("#dateLeft").textContent=humanStr;
+
+  const csv=await fetch(CSV_URL,{cache:"no-store"}).then(r=>r.text());
+  const parsed=Papa.parse(csv,{header:true,skipEmptyLines:true});
+  const row=choose(parsed.data,today);
+
+  if(!row || (row[F.type]||"").trim()!==EXPECTED){ $("#preplay").style.display="none"; $("#empty").classList.remove("hidden"); return }
+
+  S.q=(row[F.q]||"").trim(); S.correct=splitList(row[F.correct]); S.distr=splitList(row[F.distr]); S.link=(row[F.link]||"").trim();
   S.blanks=(S.q.match(/\[blank\]/g)||[]).length;
-  S.placements=Array(S.blanks).fill(null);
-  S.link=row.link||"";
-  $("#dateTop").textContent=human();
+  if(S.blanks!==S.correct.length){ $("#preplay").style.display="none"; $("#empty").classList.remove("hidden"); $("#empty").textContent="Config error: [blank] count must equal correct_words."; return }
+
+  S.tokens=[...S.correct, ...S.distr.slice(0, Math.max(0, TOTAL_OPTIONS - S.correct.length))];
+  S.tokens=shuffle(S.tokens); S.placements=Array(S.blanks).fill(null);
   renderPreview();
-}});
+
+  // Recalc slot widths on resize (and switch off on small screens)
+  let resizeTO=null;
+  window.addEventListener('resize', ()=>{ clearTimeout(resizeTO); resizeTO=setTimeout(setSlotWidths, 120); });
+})();
 </script>
 </body>
 </html>
