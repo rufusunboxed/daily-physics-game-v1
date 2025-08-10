@@ -137,14 +137,18 @@
     #topBar{display:flex;flex-direction:column;align-items:center;gap:8px}
     .dateLeft{width:100%;text-align:center}
 
-    .streakTop{
-      position:static;
-      display:inline-flex;
-      width:auto;               /* shrink to content */
-      max-width:calc(100% - 60px);
-      margin:16px auto 0;       /* centered */
-      padding:8px 14px;         /* pill feel */
-      border-radius:9999px;
+  /* <ANCHOR STREAK MOBILE START> */
+.streakTop{
+  position: static;
+  display: flex;               /* label + dots stay in a row */
+  width: -moz-fit-content;     /* shrink-to-content (Firefox) */
+  width: fit-content;          /* shrink-to-content (others) */
+  max-width: calc(100% - 60px);/* never touch card edges */
+  margin: 16px auto 0;         /* center horizontally */
+  padding: 8px 14px;           /* compact pill */
+  border-radius: 9999px;
+}
+/* <ANCHOR STREAK MOBILE END> */
     }
     .streakLabel{font-size:12px}
     .dots{gap:10px}
