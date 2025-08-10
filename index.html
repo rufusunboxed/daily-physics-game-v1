@@ -33,8 +33,6 @@
   #topBar{position:relative}
   .dateLeft{font-size:12px}
   .sentence{font-size:18px;text-align:left;margin-top:20px;line-height:32px}
-  /* Push the sentence down ONLY when streak pill is visible on desktop */
-  .streak-visible-desktop .sentence{margin-top:64px}
 
   /* Fill-in blanks */
   .blank{
@@ -88,7 +86,7 @@
     padding:6px 10px;height:auto;opacity:0;visibility:hidden;transition:opacity .25s ease;z-index:1
   }
   .streak.show{opacity:1;visibility:visible}
-  .streakTop{position:absolute;top:30px;right:30px}
+  .streakTop{position:absolute;top:30px;right:30px} /* desktop overlay: no layout push */
   .streakLabel{font-size:12px}
   .dots{display:flex;gap:8px}
   .dot{width:10px;height:10px;border-radius:50%;background:#F0F0F0}
@@ -127,7 +125,7 @@
 
   @media (max-width:820px){.wrap{padding:12px}#game{padding:22px}.previewBox{width:calc(100% - 48px)}.sentence{font-size:17px}.blank{min-width:96px}}
 
-  /* Mobile: center date; streak after buttons; smaller pill padding */
+  /* Mobile: center date; streak after buttons, auto width & centered */
   @media (max-width:560px){
     body{font-size:18px}
     #preplay{padding:24px 24px 30px}
@@ -138,7 +136,15 @@
 
     #topBar{display:flex;flex-direction:column;align-items:center;gap:8px}
     .dateLeft{width:100%;text-align:center}
-    .streakTop{position:static;margin-top:12px;padding:4px 8px} /* tighter pill on mobile */
+
+    .streakTop{
+      position:static;
+      display:block;
+      width:fit-content;   /* shrink to content */
+      margin:12px auto 0;  /* center */
+      padding:4px 8px;     /* tighter */
+    }
+    .dots{gap:6px}
 
     .answerSlot{display:block;max-width:100%;width:100%}
 
@@ -170,7 +176,6 @@
       </section>
 
       <section id="game">
-        <!-- Date (streak overlays at top-right on desktop only) -->
         <div id="topBar">
           <div class="dateLeft" id="dateLeft">—</div>
         </div>
@@ -453,15 +458,6 @@ function markCompletedIfToday(rowDateYMD, todayYMD){
   map[todayYMD]=true;
   setCompletedMap(map);
 }
-/* Ensure sentence is pushed only on desktop when streak is shown */
-function applyStreakSpacing(){
-  const game=$("#game");
-  if(window.innerWidth>560 && $("#streakBox").classList.contains("show")){
-    game.classList.add("streak-visible-desktop");
-  }else{
-    game.classList.remove("streak-visible-desktop");
-  }
-}
 function renderStreak(todayYMD){
   const box=$("#streakBox"), dotsEl=$("#streakDots");
   const map=getCompletedMap(); dotsEl.innerHTML="";
@@ -474,7 +470,6 @@ function renderStreak(todayYMD){
     dotsEl.appendChild(dot);
   }
   box.classList.add("show");
-  applyStreakSpacing();
 }
 
 /* Reset */
@@ -495,7 +490,6 @@ function resetGame(){
   a.style.opacity=0; a.style.transform="translateX(12px)";
 
   $("#streakBox").classList.remove("show");
-  $("#game").classList.remove("streak-visible-desktop");
 
   if(S.mode===TYPES.FILL){
     S.placements=Array(S.blanks).fill(null);
@@ -620,15 +614,8 @@ function choose(rows,ymd){const url=new URL(location.href);const o=url.searchPar
   S.mcq.selection=null;
   renderPreview();
 
-  /* keep slot layout responsive */
   let resizeTO=null;
-  window.addEventListener('resize', ()=>{
-    clearTimeout(resizeTO);
-    resizeTO=setTimeout(()=>{
-      setSlotWidths();
-      applyStreakSpacing();
-    }, 120);
-  });
+  window.addEventListener('resize', ()=>{ clearTimeout(resizeTO); resizeTO=setTimeout(setSlotWidths, 120); });
 })();
 </script>
 </body>
