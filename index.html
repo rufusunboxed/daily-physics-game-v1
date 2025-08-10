@@ -20,9 +20,9 @@
   .wrap{max-width:940px;margin:0 auto;padding:16px;display:flex;justify-content:center}
   .card{width:100%;max-width:760px;background:var(--light);border:2px solid var(--orange);border-radius:20px;box-sizing:border-box}
 
-  /* Frame 1 (no fixed height, just spacing) */
+  /* Frame 1 */
   #preplay{padding:30px 30px 40px;text-align:center;position:relative}
-  .dateTop{font-size:12px;margin-top:0;margin-bottom:6px}
+  .dateTop{font-size:12px;margin:0 0 6px}
   .title24{font-weight:700;font-size:24px;margin:0}
   .previewBox{width:calc(100% - 80px);margin:24px auto 0;background:#fff;border-radius:20px;padding:20px;box-sizing:border-box;font-size:18px}
   .btnPlay{width:87px;height:36px;margin:30px auto 0;background:var(--orange);color:#000;border-radius:5px;border:0;cursor:pointer;font-weight:700;font-size:18px;transition:filter .15s,transform .05s}
@@ -33,6 +33,8 @@
   #topBar{position:relative}
   .dateLeft{font-size:12px}
   .sentence{font-size:18px;text-align:left;margin-top:20px;line-height:32px}
+  /* Push the sentence down ONLY when streak pill is visible on desktop */
+  .streak-visible-desktop .sentence{margin-top:64px}
 
   /* Fill-in blanks */
   .blank{
@@ -82,12 +84,11 @@
 
   /* Streak pill */
   .streak{
-    display:flex;align-items:center;gap:10px;
-    background:#fff;border:0;border-radius:999px;padding:6px 10px;height:auto;
-    opacity:0;visibility:hidden;transition:opacity .25s ease;
+    display:flex;align-items:center;gap:10px;background:#fff;border:0;border-radius:999px;
+    padding:6px 10px;height:auto;opacity:0;visibility:hidden;transition:opacity .25s ease;z-index:1
   }
   .streak.show{opacity:1;visibility:visible}
-  .streakTop{position:absolute;top:30px;right:30px} /* desktop: overlay top-right */
+  .streakTop{position:absolute;top:30px;right:30px}
   .streakLabel{font-size:12px}
   .dots{display:flex;gap:8px}
   .dot{width:10px;height:10px;border-radius:50%;background:#F0F0F0}
@@ -111,7 +112,7 @@
 
   /* ===== Responsive ===== */
 
-  /* Desktop MCQ grid: responsive columns; safe shrinking (min-width:0) */
+  /* Desktop MCQ grid */
   @media (min-width: 701px){
     .bank.mcq{
       display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
@@ -126,7 +127,7 @@
 
   @media (max-width:820px){.wrap{padding:12px}#game{padding:22px}.previewBox{width:calc(100% - 48px)}.sentence{font-size:17px}.blank{min-width:96px}}
 
-  /* Mobile: center date; streak appears **after buttons**; MCQ wraps fully */
+  /* Mobile: center date; streak after buttons; smaller pill padding */
   @media (max-width:560px){
     body{font-size:18px}
     #preplay{padding:24px 24px 30px}
@@ -137,7 +138,7 @@
 
     #topBar{display:flex;flex-direction:column;align-items:center;gap:8px}
     .dateLeft{width:100%;text-align:center}
-    .streakTop{position:static} /* on mobile, not absolute; lives under buttons in DOM */
+    .streakTop{position:static;margin-top:12px;padding:4px 8px} /* tighter pill on mobile */
 
     .answerSlot{display:block;max-width:100%;width:100%}
 
@@ -169,7 +170,7 @@
       </section>
 
       <section id="game">
-        <!-- Top bar holds the date (streak overlays on desktop only) -->
+        <!-- Date (streak overlays at top-right on desktop only) -->
         <div id="topBar">
           <div class="dateLeft" id="dateLeft">—</div>
         </div>
@@ -192,7 +193,7 @@
           </a>
         </div>
 
-        <!-- Streak pill: top-right absolute on desktop; **below buttons on mobile** -->
+        <!-- Streak pill: top-right absolute on desktop; below buttons on mobile -->
         <div class="streak streakTop" id="streakBox" aria-live="polite">
           <span class="streakLabel">Your last 7 days:</span>
           <div class="dots" id="streakDots"></div>
@@ -440,7 +441,7 @@ $("#bank").addEventListener("drop",e=>{
 });
 
 /* ===== Streak (localStorage) ===== */
-const LS_KEYS={completed:"ap_streak_completed"}; // { "YYYY-MM-DD": true }
+const LS_KEYS={completed:"ap_streak_completed"};
 function getCompletedMap(){
   try{ return JSON.parse(localStorage.getItem(LS_KEYS.completed)) || {}; }catch{ return {}; }
 }
@@ -451,6 +452,15 @@ function markCompletedIfToday(rowDateYMD, todayYMD){
   if(map[todayYMD]) return;
   map[todayYMD]=true;
   setCompletedMap(map);
+}
+/* Ensure sentence is pushed only on desktop when streak is shown */
+function applyStreakSpacing(){
+  const game=$("#game");
+  if(window.innerWidth>560 && $("#streakBox").classList.contains("show")){
+    game.classList.add("streak-visible-desktop");
+  }else{
+    game.classList.remove("streak-visible-desktop");
+  }
 }
 function renderStreak(todayYMD){
   const box=$("#streakBox"), dotsEl=$("#streakDots");
@@ -464,6 +474,7 @@ function renderStreak(todayYMD){
     dotsEl.appendChild(dot);
   }
   box.classList.add("show");
+  applyStreakSpacing();
 }
 
 /* Reset */
@@ -484,6 +495,7 @@ function resetGame(){
   a.style.opacity=0; a.style.transform="translateX(12px)";
 
   $("#streakBox").classList.remove("show");
+  $("#game").classList.remove("streak-visible-desktop");
 
   if(S.mode===TYPES.FILL){
     S.placements=Array(S.blanks).fill(null);
@@ -608,8 +620,15 @@ function choose(rows,ymd){const url=new URL(location.href);const o=url.searchPar
   S.mcq.selection=null;
   renderPreview();
 
+  /* keep slot layout responsive */
   let resizeTO=null;
-  window.addEventListener('resize', ()=>{ clearTimeout(resizeTO); resizeTO=setTimeout(setSlotWidths, 120); });
+  window.addEventListener('resize', ()=>{
+    clearTimeout(resizeTO);
+    resizeTO=setTimeout(()=>{
+      setSlotWidths();
+      applyStreakSpacing();
+    }, 120);
+  });
 })();
 </script>
 </body>
